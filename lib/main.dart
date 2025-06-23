@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:x_project_flutter/register_screen/register_description_screen.dart';
+import 'package:x_project_flutter/register_screen/regsiter_image_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'l10n/l10n.dart';
 
@@ -56,6 +58,8 @@ class MyApp extends StatelessWidget {
       ),
       routes:{
         Login.routeName: (context) => const Login(),
+        RegisterDescriptionScreen.routeName: (context) => const RegisterDescriptionScreen(),
+        RegisterImageScreen.routeName: (context) => const RegisterImageScreen(),
       },
       onGenerateRoute: (RouteSettings settings) {
         switch(settings.name) {

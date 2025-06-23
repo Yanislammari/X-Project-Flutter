@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:x_project_flutter/register_screen/register_description_screen.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../widget/text_field_decoration.dart';
@@ -57,9 +58,12 @@ class _LoginState extends State<Login> {
                 style: Theme.of(context).textTheme.labelSmall,
               ),
               Spacer(flex:15),
-              Text(
-                loc.loginScreen_labelRegister,
-                style: Theme.of(context).textTheme.labelSmall,
+              GestureDetector(
+                onTap: ()=>RegisterDescriptionScreen.navigateTo(context),
+                child: Text(
+                  loc.loginScreen_labelRegister,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
               ),
             ],
           ),

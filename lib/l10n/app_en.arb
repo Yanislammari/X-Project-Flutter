@@ -4,5 +4,16 @@
   "loginScreen_buttonConnectWithEmail": "Connect with email",
   "loginScreen_labelConnectWithGoogle": "Connect with Google",
   "loginScreen_labelConnectWithGitHub": "Connect with Apple",
-  "loginScreen_labelRegister": "Register here"
+  "loginScreen_labelRegister": "Register here",
+
+  "registerDescriptionScreen_title":"Identify yourself",
+  "registerDescriptionScreen_textFieldPseudoPlaceholder":"Pseudo",
+  "registerDescriptionScreen_textFieldBioPlaceholder":"Describe yourself in a few words",
+  "registerDescriptionScreen_buttonValidate":"Validate",
+  "registerDescriptionScreen_textErrorEmpty":"Field cannot be empty",
+
+  "registerImageScreen_title": "Chose your profile picture",
+  "registerImageScreen_buttonPickFromGal": "Pick from gallery",
+  "registerImageScreen_buttonTakePhoto": "Take a photo",
+  "registerImageScreen_textNoImage": "No image selected"
 }
