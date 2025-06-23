@@ -67,7 +67,7 @@ class _ChosePasswordScreenState extends State<ChosePasswordScreen> {
   Future<UserCredential?> signUp() async{
     try {
       final credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: "alexisduplessis20133@gmail.com", password: passwordController.value.text);
+          .createUserWithEmailAndPassword(email: "alexisduplessis2003@gmail.com", password: passwordController.value.text);
       return credential;
     } on FirebaseAuthException catch (e) {
       String message = e.message ?? 'An unknown error occurred';

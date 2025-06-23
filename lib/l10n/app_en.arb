@@ -1,10 +1,8 @@
 {
   "loginScreen_title": "Log into Buzzio",
-  "loginScreen_textFieldEmailPlaceholder": "Email adress",
-  "loginScreen_buttonConnectWithEmail": "Connect with email",
+  "loginScreen_buttonConnectWithEmail": "Connect/Register with email",
   "loginScreen_labelConnectWithGoogle": "Connect/Register with Google",
   "loginScreen_labelConnectWithGitHub": "Connect with Apple",
-  "loginScreen_labelRegister": "Register here",
 
   "registerDescriptionScreen_title":"Identify yourself",
   "registerDescriptionScreen_textFieldPseudoPlaceholder":"Pseudo",
