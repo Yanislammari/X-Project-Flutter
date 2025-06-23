@@ -2,22 +2,22 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:x_project_flutter/register_screen/register_chose_credentials_screen.dart';
+import 'package:x_project_flutter/home_screen/home_screen.dart';
 
 import '../l10n/generated/app_localizations.dart';
 
-class RegisterImageScreen extends StatefulWidget {
-  static const String routeName = '/register/image';
+class OnboardingImageScreen extends StatefulWidget {
+  static const String routeName = '/on_board/profile_picture';
   static void navigateTo(BuildContext context) {
     Navigator.of(context).pushNamed(routeName);
   }
-  const RegisterImageScreen({super.key});
+  const OnboardingImageScreen({super.key});
 
   @override
-  State<RegisterImageScreen> createState() => _RegisterImageScreenState();
+  State<OnboardingImageScreen> createState() => _OnboardingImageScreenState();
 }
 
-class _RegisterImageScreenState extends State<RegisterImageScreen> {
+class _OnboardingImageScreenState extends State<OnboardingImageScreen> {
 
   File? image;
   final picker = ImagePicker();
@@ -55,7 +55,7 @@ class _RegisterImageScreenState extends State<RegisterImageScreen> {
               child: Text(loc.registerImageScreen_buttonTakePhoto),
             ),
             ElevatedButton(
-                onPressed: ()=>RegisterChoseCredentialsScreen.navigateTo(context),
+                onPressed: ()=>HomeScreen.navigateTo(context),
                 child: Text(loc.registerDescriptionScreen_buttonValidate)
             )
           ],

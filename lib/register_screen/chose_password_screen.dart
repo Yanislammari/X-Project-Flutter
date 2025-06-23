@@ -1,21 +1,23 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:x_project_flutter/home_screen/home_screen.dart';
+import 'package:x_project_flutter/on_board_screen/onboarding_description_screen.dart';
 import 'package:x_project_flutter/widget/text_field_decoration.dart';
 
 import '../l10n/generated/app_localizations.dart';
 
-class RegisterPasswordScreen extends StatefulWidget {
+class ChosePasswordScreen extends StatefulWidget {
   static const String routeName = '/register/password';
   static void navigateTo(BuildContext context) {
     Navigator.of(context).pushNamed(routeName);
   }
-  const RegisterPasswordScreen({super.key});
+  const ChosePasswordScreen({super.key});
 
   @override
-  State<RegisterPasswordScreen> createState() => _RegisterPasswordScreenState();
+  State<ChosePasswordScreen> createState() => _ChosePasswordScreenState();
 }
 
-class _RegisterPasswordScreenState extends State<RegisterPasswordScreen> {
+class _ChosePasswordScreenState extends State<ChosePasswordScreen> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
@@ -52,13 +54,37 @@ class _RegisterPasswordScreenState extends State<RegisterPasswordScreen> {
               ),
               const SizedBox(height: 15),
               ElevatedButton(
-                  onPressed: ()=>HomeScreen.navigateTo(context),
+                  onPressed: loginClassic,
                   child: Text(loc.registerPasswordScreen_buttonValidate),
-              )
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<UserCredential?> signUp() async{
+    try {
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: "alexisduplessis20133@gmail.com", password: passwordController.value.text);
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      String message = e.message ?? 'An unknown error occurred';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      return null;
+    } catch (e) {
+      print('Sign-in error: $e');
+      return null;
+    }
+  }
+
+  void loginClassic() async{
+    final credential = await signUp();
+    if (credential != null) {
+      OnboardingDescriptionScreen.navigateTo(context);
+    }
   }
 }

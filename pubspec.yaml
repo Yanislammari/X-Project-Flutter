@@ -32,7 +32,10 @@ dependencies:
     sdk: flutter
   flutter_localizations: # Enables localization support
     sdk: flutter
-  firebase_core: ^2.30.0
+  firebase_core: ^3.14.0
+  firebase_auth: ^5.6.0
+  cloud_firestore: ^5.6.9
+  google_sign_in: ^6.3.0
   intl: ^0.20.2
   image_picker: ^1.1.2
   cupertino_icons: ^1.0.8

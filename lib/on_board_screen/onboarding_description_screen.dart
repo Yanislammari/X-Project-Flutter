@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:x_project_flutter/register_screen/regsiter_image_screen.dart';
+import 'package:x_project_flutter/on_board_screen/onboarding_image_screen.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../widget/text_field_decoration.dart';
 
-class RegisterDescriptionScreen extends StatefulWidget {
-  static const String routeName = '/register/description';
+class OnboardingDescriptionScreen extends StatefulWidget {
+  static const String routeName = '/on_board/description';
   static void navigateTo(BuildContext context) {
     Navigator.of(context).pushNamed(routeName);
   }
-  const RegisterDescriptionScreen({super.key});
+  const OnboardingDescriptionScreen({super.key});
 
   @override
-  State<RegisterDescriptionScreen> createState() => _RegisterDescriptionScreenState();
+  State<OnboardingDescriptionScreen> createState() => _OnboardingDescriptionScreenState();
 }
 
-class _RegisterDescriptionScreenState extends State<RegisterDescriptionScreen> {
+class _OnboardingDescriptionScreenState extends State<OnboardingDescriptionScreen> {
 
   final pseudoTextController = TextEditingController();
   final bioTextController = TextEditingController();
@@ -56,7 +56,7 @@ class _RegisterDescriptionScreenState extends State<RegisterDescriptionScreen> {
                   keyboardType: TextInputType.multiline,
                 ),
                 ElevatedButton(
-                  onPressed: ()=>RegisterImageScreen.navigateTo(context),
+                  onPressed: ()=>OnboardingImageScreen.navigateTo(context),
                   child: Text(loc.registerDescriptionScreen_buttonValidate),
                 ),
               ],

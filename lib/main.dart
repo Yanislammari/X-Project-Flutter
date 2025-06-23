@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:x_project_flutter/home_screen/home_screen.dart';
-import 'package:x_project_flutter/register_screen/register_chose_credentials_screen.dart';
-import 'package:x_project_flutter/register_screen/register_description_screen.dart';
-import 'package:x_project_flutter/register_screen/register_password_screen.dart';
-import 'package:x_project_flutter/register_screen/regsiter_image_screen.dart';
+import 'package:x_project_flutter/login_screen/login_email_passwd_screen.dart';
+import 'package:x_project_flutter/register_screen/chose_email_screen.dart';
+import 'package:x_project_flutter/register_screen/chose_password_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'l10n/l10n.dart';
 
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-import 'login_screen/login.dart';
+import 'login_screen/chose_login_screen.dart';
+import 'on_board_screen/onboarding_description_screen.dart';
+import 'on_board_screen/onboarding_image_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,10 +62,11 @@ class MyApp extends StatelessWidget {
       ),
       routes:{
         Login.routeName: (context) => const Login(),
-        RegisterDescriptionScreen.routeName: (context) => const RegisterDescriptionScreen(),
-        RegisterImageScreen.routeName: (context) => const RegisterImageScreen(),
-        RegisterChoseCredentialsScreen.routeName: (context) => const RegisterChoseCredentialsScreen(),
-        RegisterPasswordScreen.routeName: (context) => const RegisterPasswordScreen(),
+        LoginEmailPasswdScreen.routeName : (context) => const LoginEmailPasswdScreen(),
+        ChoseEmailScreen.routeName : (context) => const ChoseEmailScreen(),
+        OnboardingDescriptionScreen.routeName: (context) => const OnboardingDescriptionScreen(),
+        OnboardingImageScreen.routeName: (context) => const OnboardingImageScreen(),
+        ChosePasswordScreen.routeName: (context) => const ChosePasswordScreen(),
         HomeScreen.routeName: (context) => const HomeScreen(),
       },
       onGenerateRoute: (RouteSettings settings) {
