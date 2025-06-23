@@ -15,5 +15,14 @@
   "registerImageScreen_title": "Chose your profile picture",
   "registerImageScreen_buttonPickFromGal": "Pick from gallery",
   "registerImageScreen_buttonTakePhoto": "Take a photo",
-  "registerImageScreen_textNoImage": "No image selected"
+  "registerImageScreen_textNoImage": "No image selected",
+
+  "registerCredentialsScreen_title": "Chose how to register",
+
+  "registerPasswordScreen_title": "Chose your password",
+  "registerPasswordScreen_textFieldPasswordPlaceHolder": "a1x@",
+  "registerPasswordScreen_textFieldConfirmPasswordPlaceHolder": "Confirm password",
+  "registerPasswordScreen_textTooShort": "Password must ba at least 6 characters",
+  "registerPasswordScreen_textNotSame": "Password are not matching",
+  "registerPasswordScreen_buttonValidate": "Validate"
 }

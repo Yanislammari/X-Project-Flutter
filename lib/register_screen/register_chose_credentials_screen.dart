@@ -1,71 +1,59 @@
 import 'package:flutter/material.dart';
-import 'package:x_project_flutter/register_screen/register_description_screen.dart';
+import 'package:x_project_flutter/register_screen/register_password_screen.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../widget/text_field_decoration.dart';
 
-class Login extends StatefulWidget {
-  static const String routeName = '/';
+class RegisterChoseCredentialsScreen extends StatefulWidget {
+  static const String routeName = '/register/credentials';
   static void navigateTo(BuildContext context) {
     Navigator.of(context).pushNamed(routeName);
   }
-
-  const Login({super.key});
+  const RegisterChoseCredentialsScreen({super.key});
 
   @override
-  State<Login> createState() => _LoginState();
+  State<RegisterChoseCredentialsScreen> createState() => _RegisterChoseCredentialsScreenState();
 }
 
-class _LoginState extends State<Login> {
-
-  final loginController = TextEditingController();
+class _RegisterChoseCredentialsScreenState extends State<RegisterChoseCredentialsScreen> {
+  final emailTextController = TextEditingController();
 
   @override
   void dispose() {
+    emailTextController.dispose();
     super.dispose();
-    loginController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(loc.loginScreen_title),
+        title: Text(loc.registerCredentialsScreen_title),
       ),
       body: Center(
         child: Container(
           margin: EdgeInsets.all(15),
           child: Column(
-            spacing: 30,
+            spacing: 10,
             children: [
               TextField(
-                controller: loginController,
+                controller: emailTextController,
                 decoration: textFieldMainDeco(loc.loginScreen_textFieldEmailPlaceholder),
               ),
               ElevatedButton(
-                  onPressed: ()=>{},
-                  child: Text(loc.loginScreen_buttonConnectWithEmail),
+                onPressed: ()=>RegisterPasswordScreen.navigateTo(context),
+                child: Text(loc.loginScreen_buttonConnectWithEmail),
               ),
+              SizedBox(height: 15),
               Text(
                 loc.loginScreen_labelConnectWithGoogle,
                 style: Theme.of(context).textTheme.labelSmall,
               ),
+              SizedBox(height: 15),
               Text(
                 loc.loginScreen_labelConnectWithGitHub,
                 style: Theme.of(context).textTheme.labelSmall,
-              ),
-              const Spacer(),
-              Container(
-                margin: EdgeInsets.only(bottom: 25),
-                child: GestureDetector(
-                  onTap: ()=>RegisterDescriptionScreen.navigateTo(context),
-                  child: Text(
-                    loc.loginScreen_labelRegister,
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                ),
               ),
             ],
           ),

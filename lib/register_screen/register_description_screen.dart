@@ -17,11 +17,19 @@ class RegisterDescriptionScreen extends StatefulWidget {
 
 class _RegisterDescriptionScreenState extends State<RegisterDescriptionScreen> {
 
+  final pseudoTextController = TextEditingController();
+  final bioTextController = TextEditingController();
+
+  @override
+  void dispose() {
+    super.dispose();
+    pseudoTextController.dispose();
+    bioTextController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final pseudoTextController = TextEditingController();
-    final bioTextController = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(
@@ -48,7 +56,7 @@ class _RegisterDescriptionScreenState extends State<RegisterDescriptionScreen> {
                   keyboardType: TextInputType.multiline,
                 ),
                 ElevatedButton(
-                  onPressed: ()=>{RegisterImageScreen.navigateTo(context)},
+                  onPressed: ()=>RegisterImageScreen.navigateTo(context),
                   child: Text(loc.registerDescriptionScreen_buttonValidate),
                 ),
               ],
