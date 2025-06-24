@@ -30,9 +30,17 @@ class _LoginState extends State<Login> {
       body: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
           if (state.status == LoginStatus.successfulLoginNoOnBoarding) {
-            Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              HomeScreen.routeName,
+                  (route) => false,
+            );
           } else if (state.status == LoginStatus.successfulLoginOnBoarding) {
-            Navigator.pushReplacementNamed(context, OnboardingDescriptionScreen.routeName);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              OnboardingDescriptionScreen.routeName,
+                  (route) => false,
+            );
           } else if (state.status == LoginStatus.errorLogin) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message ?? 'Login failed')),

@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:x_project_flutter/core/blocs/register_bloc/register_bloc.dart';
 import 'package:x_project_flutter/core/repositories/login/firebase_login_data_source.dart';
 import 'package:x_project_flutter/core/repositories/login/login_repository.dart';
+import 'package:x_project_flutter/core/repositories/register/register_repository.dart';
 import 'package:x_project_flutter/home_screen/home_screen.dart';
 import 'package:x_project_flutter/login_screen/login_email_passwd_screen.dart';
 import 'package:x_project_flutter/register_screen/chose_email_screen.dart';
 import 'package:x_project_flutter/register_screen/chose_password_screen.dart';
 import 'core/blocs/login_bloc/login_bloc.dart';
+import 'core/repositories/register/firebase_register_data_source.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'l10n/l10n.dart';
 
@@ -37,6 +40,11 @@ class MyApp extends StatelessWidget {
         BlocProvider<LoginBloc>(
           create: (context) => LoginBloc(
             loginRepository: LoginRepository(loginDataSource: FirebaseLoginDataSource()),
+          ),
+        ),
+        BlocProvider<RegisterBloc>(
+          create: (context) => RegisterBloc(
+            registerRepository: RegisterRepository(firebaseRegisterDataSource: FirebaseRegisterDataSource()),
           ),
         ),
       ],

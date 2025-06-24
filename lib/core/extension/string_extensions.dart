@@ -9,4 +9,18 @@ extension StringExtensions on String {
     }
     return errorMessage;
   }
+
+  bool isEmail() {
+    final emailRegex = RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+"
+      r"@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$",
+    );
+    return emailRegex.hasMatch(this);
+  }
+}
+
+extension NullableStringUtils on String? {
+  bool isEmptyOrNull() {
+    return this == null || this!.isEmpty;
+  }
 }

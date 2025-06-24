@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:x_project_flutter/core/blocs/on_boarding_bloc/on_boarding_bloc.dart';
+import 'package:x_project_flutter/core/extension/string_extensions.dart';
 import 'package:x_project_flutter/on_board_screen/onboarding_image_screen.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -19,6 +22,20 @@ class _OnboardingDescriptionScreenState extends State<OnboardingDescriptionScree
 
   final pseudoTextController = TextEditingController();
   final bioTextController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    final pseudoFromBloc = context.read<OnBoardingBloc>().state.pseudo;
+    if (!pseudoFromBloc.isEmptyOrNull()) {
+      pseudoTextController.text = pseudoFromBloc!;
+    }
+    final bioFromBloc = context.read<OnBoardingBloc>().state.description;
+    if (!bioFromBloc.isEmptyOrNull()) {
+      bioTextController.text = bioFromBloc!;
+    }
+  }
 
   @override
   void dispose() {

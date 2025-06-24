@@ -51,7 +51,7 @@ class _LoginEmailPasswdScreenState extends State<LoginEmailPasswdScreen> {
               ),
               ElevatedButton(
                 onPressed: (){
-                  context.read<LoginBloc>().add(ConnexionWithEmailPassword(email: emailController.value.text,password: passwordController.value.text));
+                  context.read<LoginBloc>().add(ConnexionWithEmailPassword(email: emailController.text,password: passwordController.text));
                 },
                 child: Text('Login'),
               ),
