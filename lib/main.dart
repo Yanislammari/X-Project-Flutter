@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:x_project_flutter/core/repositories/login/firebase_login_data_source.dart';
+import 'package:x_project_flutter/core/repositories/login/login_repository.dart';
 import 'package:x_project_flutter/home_screen/home_screen.dart';
 import 'package:x_project_flutter/login_screen/login_email_passwd_screen.dart';
 import 'package:x_project_flutter/register_screen/chose_email_screen.dart';
 import 'package:x_project_flutter/register_screen/chose_password_screen.dart';
+import 'core/blocs/login_bloc/login_bloc.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'l10n/l10n.dart';
 
@@ -28,57 +32,66 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      locale: const Locale('en'),
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: L10n.all,
-      theme: ThemeData(
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(
-            fontSize: 23,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-          displayMedium: TextStyle(
-            fontSize: 17,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-          displaySmall: TextStyle(
-            fontSize: 14,
-            color: Colors.black,
-          ),
-          labelSmall: TextStyle(
-            fontSize: 14,
-            color: Colors.blue,
-            decoration: TextDecoration.underline, // Apply underline
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<LoginBloc>(
+          create: (context) => LoginBloc(
+            loginRepository: LoginRepository(loginDataSource: FirebaseLoginDataSource()),
           ),
         ),
-      ),
-      routes:{
-        Login.routeName: (context) => const Login(),
-        LoginEmailPasswdScreen.routeName : (context) => const LoginEmailPasswdScreen(),
-        ChoseEmailScreen.routeName : (context) => const ChoseEmailScreen(),
-        OnboardingDescriptionScreen.routeName: (context) => const OnboardingDescriptionScreen(),
-        OnboardingImageScreen.routeName: (context) => const OnboardingImageScreen(),
-        ChosePasswordScreen.routeName: (context) => const ChosePasswordScreen(),
-        HomeScreen.routeName: (context) => const HomeScreen(),
-      },
-      onGenerateRoute: (RouteSettings settings) {
-        switch(settings.name) {
-          case '/password':
-            return MaterialPageRoute(
-              builder: (context) => const Login(),
-            );
+      ],
+      child: MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: L10n.all,
+        theme: ThemeData(
+          textTheme: const TextTheme(
+            displayLarge: TextStyle(
+              fontSize: 23,
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+            displayMedium: TextStyle(
+              fontSize: 17,
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+            displaySmall: TextStyle(
+              fontSize: 14,
+              color: Colors.black,
+            ),
+            labelSmall: TextStyle(
+              fontSize: 14,
+              color: Colors.blue,
+              decoration: TextDecoration.underline, // Apply underline
+            ),
+          ),
+        ),
+        routes:{
+          Login.routeName: (context) => const Login(),
+          LoginEmailPasswdScreen.routeName : (context) => const LoginEmailPasswdScreen(),
+          ChoseEmailScreen.routeName : (context) => const ChoseEmailScreen(),
+          OnboardingDescriptionScreen.routeName: (context) => const OnboardingDescriptionScreen(),
+          OnboardingImageScreen.routeName: (context) => const OnboardingImageScreen(),
+          ChosePasswordScreen.routeName: (context) => const ChosePasswordScreen(),
+          HomeScreen.routeName: (context) => const HomeScreen(),
+        },
+        onGenerateRoute: (RouteSettings settings) {
+          switch(settings.name) {
+            case '/password':
+              return MaterialPageRoute(
+                builder: (context) => const Login(),
+              );
 
-          default: return null;
-        }
-      },
+            default: return null;
+          }
+        },
+      ),
     );
   }
 }

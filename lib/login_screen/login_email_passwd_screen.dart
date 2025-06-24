@@ -1,5 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:x_project_flutter/core/blocs/login_bloc/login_bloc.dart';
 import 'package:x_project_flutter/register_screen/chose_email_screen.dart';
 import 'package:x_project_flutter/widget/text_field_decoration.dart';
 
@@ -49,7 +50,9 @@ class _LoginEmailPasswdScreenState extends State<LoginEmailPasswdScreen> {
                 decoration: textFieldMainDeco('Password')
               ),
               ElevatedButton(
-                onPressed: (){},
+                onPressed: (){
+                  context.read<LoginBloc>().add(ConnexionWithEmailPassword(email: emailController.value.text,password: passwordController.value.text));
+                },
                 child: Text('Login'),
               ),
               GestureDetector(
@@ -65,26 +68,4 @@ class _LoginEmailPasswdScreenState extends State<LoginEmailPasswdScreen> {
       ),
     );
   }
-
-  Future<UserCredential?> loginWithEmailAndPassword() async {
-    try {
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      String message = e.message ?? 'An error occurred during login';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-      return null;
-    }
-    catch (e) {
-      print('Login failed: $e');
-      return null;
-    }
-  }
-
-
 }
