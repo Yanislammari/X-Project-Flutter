@@ -4,6 +4,7 @@ import 'package:x_project_flutter/core/extension/string_extensions.dart';
 import 'package:x_project_flutter/widget/text_field_decoration.dart';
 
 import '../core/blocs/register_bloc/register_bloc.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'chose_password_screen.dart';
 
 class ChoseEmailScreen extends StatefulWidget {
@@ -39,15 +40,16 @@ class _ChoseEmailScreenState extends State<ChoseEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Register with Email'),
+        title: Text(loc.registerChoseEmailScreen_title),
       ),
       body: BlocListener<RegisterBloc, RegisterState>(
         listener: (context, state) {
           if (state.status == RegisterStatus.emailInvalid) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? 'Invalid email address')),
+              SnackBar(content: Text(state.message ?? loc.registerChoseEmailScreen_defaultError)),
             );
           } else if (state.status == RegisterStatus.emailValid) {
             ChosePasswordScreen.navigateTo(context);
@@ -61,12 +63,12 @@ class _ChoseEmailScreenState extends State<ChoseEmailScreen> {
                   children: [
                     TextField(
                       controller: emailController,
-                      decoration: textFieldMainDeco('Email'),
+                      decoration: textFieldMainDeco(loc.loginEmailPasswdScreen_textFieldEmailPlaceHolder),
                       keyboardType: TextInputType.emailAddress,
                     ),
                     ElevatedButton(
                       onPressed: ()=>context.read<RegisterBloc>().add(SendEmailToBloc(email: emailController.text)),
-                      child: Text('Register'),
+                      child: Text(loc.registerChoseEmailScreen_buttonValidate),
                     ),
                   ],
                 ),

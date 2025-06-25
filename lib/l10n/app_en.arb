@@ -2,25 +2,37 @@
   "loginScreen_title": "Log into Buzzio",
   "loginScreen_buttonConnectWithEmail": "Connect/Register with email",
   "loginScreen_labelConnectWithGoogle": "Connect/Register with Google",
-  "loginScreen_labelConnectWithGitHub": "Connect with Apple",
+  "loginScreen_errorMessageDefault": "Login failed",
+
+  "loginEmailPasswdScreen_title": "Login with email",
+  "loginEmailPasswdScreen_textFieldEmailPlaceHolder": "Email",
+  "loginEmailPasswdScreen_textFieldPasswordPlaceHolder": "Password",
+  "loginEmailPasswdScreen_buttonLogin": "Login",
+  "loginEmailPasswdScreen_buttonRegister": "Register with email",
+
+  "registerChoseEmailScreen_defaultError": "Invalid email adress",
+  "registerChoseEmailScreen_title": "Register with email",
+  "registerChoseEmailScreen_buttonValidate": "Validate",
 
   "registerDescriptionScreen_title":"Identify yourself",
+  "registerDescriptionScreen_defaultError":"Please fill in all fields",
   "registerDescriptionScreen_textFieldPseudoPlaceholder":"Pseudo",
   "registerDescriptionScreen_textFieldBioPlaceholder":"Describe yourself in a few words",
   "registerDescriptionScreen_buttonValidate":"Validate",
   "registerDescriptionScreen_textErrorEmpty":"Field cannot be empty",
 
   "registerImageScreen_title": "Chose your picture",
+  "registerImageScreen_defaultError": "An error occurred, please try again",
   "registerImageScreen_buttonPickFromGal": "Pick from gallery",
   "registerImageScreen_buttonTakePhoto": "Take a photo",
   "registerImageScreen_textNoImage": "No image selected",
 
-  "registerCredentialsScreen_title": "Chose how to register",
-
   "registerPasswordScreen_title": "Chose your password",
+  "registerPasswordScreen_defaultError": "Invalid password",
+  "registerPasswordScreen_defaultError2": "Registration failed, please try again",
   "registerPasswordScreen_textFieldPasswordPlaceHolder": "a1x@",
   "registerPasswordScreen_textFieldConfirmPasswordPlaceHolder": "Confirm password",
   "registerPasswordScreen_textTooShort": "Password must ba at least 6 characters",
   "registerPasswordScreen_textNotSame": "Password are not matching",
-  "registerPasswordScreen_buttonValidate": "Validate"
+  "registerPasswordScreen_buttonValidate": "Validate and go to onboarding"
 }

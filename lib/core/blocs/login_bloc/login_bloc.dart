@@ -32,9 +32,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           final exists = await loginRepository.checkUidUserExist(userCredential.user?.uid);
 
           if (exists) {
-            emit(state.copyWith(status: LoginStatus.successfulLoginNoOnBoarding, message: "Welcome back!"));
+            emit(state.copyWith(status: LoginStatus.successfulLoginNoOnBoarding));
           } else {
-            emit(state.copyWith(status: LoginStatus.successfulLoginOnBoarding, message: "Welcome, new user!"));
+            emit(state.copyWith(status: LoginStatus.successfulLoginOnBoarding));
           }
         }
         else {
