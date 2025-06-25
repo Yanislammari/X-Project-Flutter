@@ -27,9 +27,7 @@ import 'on_board_screen/onboarding_image_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -41,19 +39,28 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<LoginBloc>(
-          create: (context) => LoginBloc(
-            loginRepository: LoginRepository(loginDataSource: FirebaseLoginDataSource()),
-          ),
+          create:
+              (context) => LoginBloc(
+                loginRepository: LoginRepository(
+                  loginDataSource: FirebaseLoginDataSource(),
+                ),
+              ),
         ),
         BlocProvider<RegisterBloc>(
-          create: (context) => RegisterBloc(
-            registerRepository: RegisterRepository(registerDataSource: FirebaseRegisterDataSource()),
-          ),
+          create:
+              (context) => RegisterBloc(
+                registerRepository: RegisterRepository(
+                  registerDataSource: FirebaseRegisterDataSource(),
+                ),
+              ),
         ),
         BlocProvider<OnBoardingBloc>(
-          create: (context) => OnBoardingBloc(
-            onBoardingRepository: OnBoardingRepository(onboardingDataSource: FirebaseOnBoardingDataSource()),
-          ),
+          create:
+              (context) => OnBoardingBloc(
+                onBoardingRepository: OnBoardingRepository(
+                  onboardingDataSource: FirebaseOnBoardingDataSource(),
+                ),
+              ),
         ),
       ],
       child: MaterialApp(
@@ -66,6 +73,20 @@ class MyApp extends StatelessWidget {
         ],
         supportedLocales: L10n.all,
         theme: ThemeData(
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF0028FF),
+              foregroundColor: Colors.white,
+              textStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+              padding: const EdgeInsets.all(15),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
           textTheme: const TextTheme(
             displayLarge: TextStyle(
               fontSize: 23,
@@ -77,10 +98,7 @@ class MyApp extends StatelessWidget {
               color: Colors.black,
               fontWeight: FontWeight.bold,
             ),
-            displaySmall: TextStyle(
-              fontSize: 14,
-              color: Colors.black,
-            ),
+            displaySmall: TextStyle(fontSize: 14, color: Colors.black),
             labelSmall: TextStyle(
               fontSize: 14,
               color: Colors.blue,
@@ -88,23 +106,26 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        routes:{
+        routes: {
           Login.routeName: (context) => const Login(),
-          LoginEmailPasswdScreen.routeName : (context) => const LoginEmailPasswdScreen(),
-          ChoseEmailScreen.routeName : (context) => const ChoseEmailScreen(),
-          OnboardingDescriptionScreen.routeName: (context) => const OnboardingDescriptionScreen(),
-          OnboardingImageScreen.routeName: (context) => const OnboardingImageScreen(),
-          ChosePasswordScreen.routeName: (context) => const ChosePasswordScreen(),
+          LoginEmailPasswdScreen.routeName:
+              (context) => const LoginEmailPasswdScreen(),
+          ChoseEmailScreen.routeName: (context) => const ChoseEmailScreen(),
+          OnboardingDescriptionScreen.routeName:
+              (context) => const OnboardingDescriptionScreen(),
+          OnboardingImageScreen.routeName:
+              (context) => const OnboardingImageScreen(),
+          ChosePasswordScreen.routeName:
+              (context) => const ChosePasswordScreen(),
           HomeScreen.routeName: (context) => const HomeScreen(),
         },
         onGenerateRoute: (RouteSettings settings) {
-          switch(settings.name) {
+          switch (settings.name) {
             case '/password':
-              return MaterialPageRoute(
-                builder: (context) => const Login(),
-              );
+              return MaterialPageRoute(builder: (context) => const Login());
 
-            default: return null;
+            default:
+              return null;
           }
         },
       ),

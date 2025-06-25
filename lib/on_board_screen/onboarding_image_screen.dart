@@ -41,7 +41,7 @@ class _OnboardingImageScreenState extends State<OnboardingImageScreen> {
           } else if (state.status == OnBoardingStatus.imageInvalid ||
               state.status == OnBoardingStatus.errorRegister) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? "Something went wrong")),
+              SnackBar(content: Text(state.message ?? loc.registerImageScreen_defaultError)),
             );
           }
         },
@@ -56,28 +56,74 @@ class _OnboardingImageScreenState extends State<OnboardingImageScreen> {
                 spacing: 30,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  SizedBox(height: 15),
                   if (state.imageFile != null)
-                    Image.file(state.imageFile!, height: 200)
+                    ClipOval(
+                      child: Image.file(
+                        state.imageFile!,
+                        fit: BoxFit.cover,
+                        height: 150,
+                        width: 150,
+                      ),
+                    )
                   else
                     Text(loc.registerImageScreen_textNoImage),
 
-                  ElevatedButton(
-                    onPressed: () => context.read<OnBoardingBloc>().add(
-                      OnBoardingChoseImage(imageSource: ImageSource.gallery),
+                  Container(
+                    margin: EdgeInsets.all(8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => context.read<OnBoardingBloc>().add(
+                              OnBoardingChoseImage(imageSource: ImageSource.gallery),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.photo_library),
+                                SizedBox(width: 8),
+                                Text(loc.registerImageScreen_buttonPickFromGal),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10), // spacing between buttons
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => context.read<OnBoardingBloc>().add(
+                              OnBoardingChoseImage(imageSource: ImageSource.camera),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.camera_alt),
+                                SizedBox(width: 8), // spacing between icon and text
+                                Text(loc.registerImageScreen_buttonTakePhoto),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Text(loc.registerImageScreen_buttonPickFromGal),
                   ),
-                  ElevatedButton(
-                    onPressed: () => context.read<OnBoardingBloc>().add(
-                      OnBoardingChoseImage(imageSource: ImageSource.camera),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.5,
+                    child: ElevatedButton(
+                      onPressed: () => context.read<OnBoardingBloc>().add(
+                        OnBoardingRegisterUser(),
+                      ),
+                      child: Text(loc.registerDescriptionScreen_buttonValidate),
                     ),
-                    child: Text(loc.registerImageScreen_buttonTakePhoto),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => context.read<OnBoardingBloc>().add(
-                      OnBoardingRegisterUser(),
-                    ),
-                    child: Text(loc.registerDescriptionScreen_buttonValidate),
                   ),
                 ],
               ),

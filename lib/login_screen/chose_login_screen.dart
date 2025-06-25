@@ -33,17 +33,21 @@ class _LoginState extends State<Login> {
             Navigator.pushNamedAndRemoveUntil(
               context,
               HomeScreen.routeName,
-                  (route) => false,
+              (route) => false,
             );
           } else if (state.status == LoginStatus.successfulLoginOnBoarding) {
             Navigator.pushNamedAndRemoveUntil(
               context,
               OnboardingDescriptionScreen.routeName,
-                  (route) => false,
+              (route) => false,
             );
           } else if (state.status == LoginStatus.errorLogin) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? 'Login failed')),
+              SnackBar(
+                content: Text(
+                  state.message ?? loc.loginScreen_errorMessageDefault,
+                ),
+              ),
             );
           }
         },
@@ -53,20 +57,22 @@ class _LoginState extends State<Login> {
             child: Column(
               spacing: 30,
               children: [
-                GestureDetector(
-                  onTap: () => LoginEmailPasswdScreen.navigateTo(context),
-                  child: Text(
-                    loc.loginScreen_buttonConnectWithEmail,
-                    style: Theme.of(context).textTheme.labelSmall,
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  child: ElevatedButton(
+                    onPressed: () => LoginEmailPasswdScreen.navigateTo(context),
+                    child: Text(
+                      loc.loginScreen_buttonConnectWithEmail,
+                    ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    context.read<LoginBloc>().add(ConnexionWithGoogle());
-                  },
-                  child: Text(
-                    loc.loginScreen_labelConnectWithGoogle,
-                    style: Theme.of(context).textTheme.labelSmall,
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  child: ElevatedButton(
+                    onPressed: ()=>context.read<LoginBloc>().add(ConnexionWithGoogle()),
+                    child: Text(
+                      loc.loginScreen_labelConnectWithGoogle,
+                    ),
                   ),
                 ),
               ],

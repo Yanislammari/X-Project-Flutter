@@ -40,7 +40,7 @@ class _ChosePasswordScreenState extends State<ChosePasswordScreen> {
         listener: (context, state) {
           if(state.status == RegisterStatus.passwordInvalid) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? 'Invalid password')),
+              SnackBar(content: Text(state.message ?? loc.registerPasswordScreen_defaultError)),
             );
           } else if (state.status == RegisterStatus.passwordValid) {
             Navigator.pushNamedAndRemoveUntil(
@@ -50,7 +50,7 @@ class _ChosePasswordScreenState extends State<ChosePasswordScreen> {
             );
           } else if (state.status == RegisterStatus.errorRegister) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? 'Registration failed')),
+              SnackBar(content: Text(state.message ?? loc.registerPasswordScreen_defaultError2)),
             );
           }
         },

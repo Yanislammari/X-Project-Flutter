@@ -59,7 +59,7 @@ class _OnboardingDescriptionScreenState
             OnboardingImageScreen.navigateTo(context);
           } else if (state.status == OnBoardingStatus.pseudoDescInvalid) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? 'Please fill in all fields')),
+              SnackBar(content: Text(state.message ?? loc.registerDescriptionScreen_defaultError)),
             );
           }
         },
