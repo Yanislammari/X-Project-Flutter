@@ -9,17 +9,20 @@ import '../widget/text_field_decoration.dart';
 
 class OnboardingDescriptionScreen extends StatefulWidget {
   static const String routeName = '/on_board/description';
+
   static void navigateTo(BuildContext context) {
     Navigator.of(context).pushNamed(routeName);
   }
+
   const OnboardingDescriptionScreen({super.key});
 
   @override
-  State<OnboardingDescriptionScreen> createState() => _OnboardingDescriptionScreenState();
+  State<OnboardingDescriptionScreen> createState() =>
+      _OnboardingDescriptionScreenState();
 }
 
-class _OnboardingDescriptionScreenState extends State<OnboardingDescriptionScreen> {
-
+class _OnboardingDescriptionScreenState
+    extends State<OnboardingDescriptionScreen> {
   final pseudoTextController = TextEditingController();
   final bioTextController = TextEditingController();
 
@@ -49,34 +52,52 @@ class _OnboardingDescriptionScreenState extends State<OnboardingDescriptionScree
     final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(loc.registerDescriptionScreen_title),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Container(
-            margin: EdgeInsets.all(15),
-            child: Column(
-              spacing: 30,
-              children: [
-                TextField(
-                  controller: pseudoTextController,
-                  decoration: textFieldMainDeco(loc.registerDescriptionScreen_textFieldPseudoPlaceholder),
-                  maxLength: 25,
-                ),
-                TextField(
-                  controller: bioTextController,
-                  decoration: textFieldMainDeco(loc.registerDescriptionScreen_textFieldBioPlaceholder),
-                  maxLength: 350,
-                  minLines: 10,
-                  maxLines: 15,
-                  keyboardType: TextInputType.multiline,
-                ),
-                ElevatedButton(
-                  onPressed: ()=>OnboardingImageScreen.navigateTo(context),
-                  child: Text(loc.registerDescriptionScreen_buttonValidate),
-                ),
-              ],
+      appBar: AppBar(title: Text(loc.registerDescriptionScreen_title)),
+      body: BlocListener<OnBoardingBloc, OnBoardingState>(
+        listener: (context, state) {
+          if(state.status == OnBoardingStatus.pseudoDescValid) {
+            OnboardingImageScreen.navigateTo(context);
+          } else if (state.status == OnBoardingStatus.pseudoDescInvalid) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message ?? 'Please fill in all fields')),
+            );
+          }
+        },
+        child: SingleChildScrollView(
+          child: Center(
+            child: Container(
+              margin: EdgeInsets.all(15),
+              child: Column(
+                spacing: 30,
+                children: [
+                  TextField(
+                    controller: pseudoTextController,
+                    decoration: textFieldMainDeco(
+                      loc.registerDescriptionScreen_textFieldPseudoPlaceholder,
+                    ),
+                    maxLength: 25,
+                  ),
+                  TextField(
+                    controller: bioTextController,
+                    decoration: textFieldMainDeco(
+                      loc.registerDescriptionScreen_textFieldBioPlaceholder,
+                    ),
+                    maxLength: 350,
+                    minLines: 10,
+                    maxLines: 15,
+                    keyboardType: TextInputType.multiline,
+                  ),
+                  ElevatedButton(
+                    onPressed: () => context.read<OnBoardingBloc>().add(
+                      OnBoardingSendDescriptionAndPseudo(
+                        pseudo: pseudoTextController.text,
+                        description: bioTextController.text,
+                      ),
+                    ),
+                    child: Text(loc.registerDescriptionScreen_buttonValidate),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -11,9 +11,13 @@ final class OnBoardingSendDescriptionAndPseudo extends OnBoardingEvent {
   const OnBoardingSendDescriptionAndPseudo({this.description, this.pseudo});
 }
 
-final class OnBoardingSendImage extends OnBoardingEvent {
-  final Image? image;
-  const OnBoardingSendImage({this.image});
+final class OnBoardingChoseImage extends OnBoardingEvent {
+  final ImageSource imageSource;
+  const OnBoardingChoseImage({required this.imageSource});
+}
+
+final class OnBoardingRegisterUser extends OnBoardingEvent {
+  const OnBoardingRegisterUser();
 }
 
 

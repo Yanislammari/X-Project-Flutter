@@ -46,7 +46,7 @@ class FirebaseLoginDataSource extends LoginDataSource {
   Future<bool> checkIfUserUidExist(String? uid) async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection('users')
-        .where('uuid_user', isEqualTo: uid)
+        .where('user_uuid', isEqualTo: uid)
         .limit(1) // optional: only need to know if exists
         .get();
     return querySnapshot.docs.isNotEmpty;

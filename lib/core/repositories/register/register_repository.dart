@@ -1,12 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:x_project_flutter/core/repositories/register/firebase_register_data_source.dart';
+import 'package:x_project_flutter/core/repositories/register/register_data_source.dart';
 
 class RegisterRepository{
-  final FirebaseRegisterDataSource firebaseRegisterDataSource;
+  final RegisterDataSource registerDataSource;
 
-  const RegisterRepository({required this.firebaseRegisterDataSource});
+  const RegisterRepository({required this.registerDataSource});
 
   Future<UserCredential?> signUp(String email, String password) async {
-    return await firebaseRegisterDataSource.signUp(email, password);
+    return await registerDataSource.signUp(email, password);
   }
 }

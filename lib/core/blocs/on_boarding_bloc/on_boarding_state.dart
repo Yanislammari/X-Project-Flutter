@@ -2,10 +2,12 @@ part of 'on_boarding_bloc.dart';
 
 enum OnBoardingStatus {
   initial,
+  loading,
   pseudoDescValid,
   pseudoDescInvalid,
   imageValid,
   imageInvalid,
+  registerSuccess,
   errorRegister,
 }
 
@@ -15,7 +17,7 @@ class OnBoardingState {
   final Exception? error;
   final String? pseudo;
   final String? description;
-  final Image? image;
+  final File? imageFile;
 
   OnBoardingState({
     this.status = OnBoardingStatus.initial,
@@ -23,7 +25,7 @@ class OnBoardingState {
     this.error,
     this.pseudo,
     this.description,
-    this.image,
+    this.imageFile,
   });
 
   OnBoardingState copyWith({
@@ -32,7 +34,7 @@ class OnBoardingState {
     String? message,
     String? pseudo,
     String? description,
-    Image? image,
+    File? imageFile,
   }) {
     return OnBoardingState(
       status: status ?? this.status,
@@ -40,7 +42,7 @@ class OnBoardingState {
       message: message ?? this.message,
       pseudo: pseudo ?? this.pseudo,
       description: description ?? this.description,
-      image: image ?? this.image,
+      imageFile: imageFile ?? this.imageFile,
     );
   }
 }
