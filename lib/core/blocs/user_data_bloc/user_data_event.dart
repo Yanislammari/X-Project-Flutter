@@ -9,8 +9,13 @@ class UserDataFetch extends UserDataEvent {
   const UserDataFetch();
 }
 
-class UserDataUpdate extends UserDataEvent {
-  const UserDataUpdate();
+class UserDataUpdateProfile extends UserDataEvent {
+  final String? bio;
+  final String? pseudo;
+  const UserDataUpdateProfile({
+    this.bio,
+    this.pseudo,
+  });
 }
 
 class UserDataSendImage extends UserDataEvent {

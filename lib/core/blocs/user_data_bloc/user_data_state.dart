@@ -6,7 +6,9 @@ enum UserDataStatus {
   hasData,
   imageValid,
   imageInvalid,
-  changeFirebaseImageFailed,
+  updateImageSuccess,
+  descBioInvalid,
+  updateBioSuccess,
   error,
 }
 

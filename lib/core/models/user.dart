@@ -27,6 +27,21 @@ class FirebaseUser{
     required this.createdAt,
   });
 
+  FirebaseUser copyWith({
+    final String? pseudo,
+    final String? bio,
+    final String? imagePath,
+    final DateTime? createdAt
+
+  }) {
+    return FirebaseUser(
+      pseudo: pseudo ?? this.pseudo,
+      bio: bio ?? this.bio,
+      imagePath: imagePath ?? this.imagePath,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   factory FirebaseUser.fromJson(Map<String, dynamic> json) {
     return FirebaseUser(
       pseudo: json['pseudo'] as String,

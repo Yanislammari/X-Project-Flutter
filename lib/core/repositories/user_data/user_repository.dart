@@ -16,4 +16,8 @@ class UserRepository {
   Future<FirebaseUser?> updateUserImage(FirebaseUser? user,File? imageFile) async {
     return await userDataSource.updateUserImage(user, imageFile);
   }
+
+  Future<FirebaseUser?> updateUserBio(String? pseudo, String? bio, FirebaseUser? user) async {
+    return await userDataSource.updateUserBio(pseudo, bio, user);
+  }
 }
