@@ -1,10 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:x_project_flutter/core/blocs/on_boarding_bloc/on_boarding_bloc.dart';
-import 'package:x_project_flutter/home_screen/home_screen.dart';
+import 'package:x_project_flutter/profile_screen/profile_screen.dart';
 
 import '../l10n/generated/app_localizations.dart';
 
@@ -23,9 +21,6 @@ class OnboardingImageScreen extends StatefulWidget {
 
 class _OnboardingImageScreenState extends State<OnboardingImageScreen> {
 
-  File? imageFile;
-  final picker = ImagePicker();
-
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
@@ -36,7 +31,7 @@ class _OnboardingImageScreenState extends State<OnboardingImageScreen> {
         listener: (context, state) {
           if (state.status == OnBoardingStatus.registerSuccess) {
             Navigator.of(context).pushNamedAndRemoveUntil(
-              HomeScreen.routeName, (route) => false,
+              ProfileScreen.routeName, (route) => false,
             );
           } else if (state.status == OnBoardingStatus.imageInvalid ||
               state.status == OnBoardingStatus.errorRegister) {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:x_project_flutter/profile_screen/profile_screen.dart';
 
 import '../core/blocs/login_bloc/login_bloc.dart';
-import '../home_screen/home_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../on_board_screen/onboarding_description_screen.dart';
 import 'login_email_passwd_screen.dart';
@@ -32,7 +32,7 @@ class _LoginState extends State<Login> {
           if (state.status == LoginStatus.successfulLoginNoOnBoarding) {
             Navigator.pushNamedAndRemoveUntil(
               context,
-              HomeScreen.routeName,
+              ProfileScreen.routeName,
               (route) => false,
             );
           } else if (state.status == LoginStatus.successfulLoginOnBoarding) {

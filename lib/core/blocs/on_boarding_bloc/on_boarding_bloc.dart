@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:x_project_flutter/core/extension/string_extensions.dart';
@@ -46,8 +47,16 @@ class OnBoardingBloc extends Bloc<OnBoardingEvent, OnBoardingState> {
       } else {
         emit(state.copyWith(status: OnBoardingStatus.imageInvalid, message: "No image selected"));
       }
-    } catch (e) {
-      emit(state.copyWith(status: OnBoardingStatus.imageInvalid, message: "No image selected"));
+    } catch(e){
+      String errorMessage;
+
+      if (e is PlatformException) {
+        errorMessage = "Please allow access to your camera and/or gallery in your device settings.";
+      } else {
+        errorMessage = "An error occured, please try again";
+      }
+
+      emit(state.copyWith(status : OnBoardingStatus.imageInvalid, message: errorMessage));
     }
   }
 
