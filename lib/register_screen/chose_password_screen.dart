@@ -61,7 +61,6 @@ class _ChosePasswordScreenState extends State<ChosePasswordScreen> {
                   spacing: 15,
                   children: [
                     TextField(
-                      decoration: textFieldMainDeco(loc.registerPasswordScreen_textFieldPasswordPlaceHolder),
                       controller: passwordController,
                       obscureText: true,
                     ),
