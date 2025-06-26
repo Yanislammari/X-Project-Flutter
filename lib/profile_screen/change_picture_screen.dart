@@ -24,9 +24,7 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
   @override
   void initState() {
     super.initState();
-    if(context.read<UserDataBloc>().state.user == null) {
-      context.read<UserDataBloc>().add(UserDataFetch());
-    }
+    context.read<UserDataBloc>().add(UserDataFetch());
   }
 
   @override
@@ -37,10 +35,11 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
       appBar: AppBar(title: Text(loc.registerImageScreen_title)),
       body: BlocBuilder<UserDataBloc, UserDataState>(
         builder: (context, state) {
+          Widget imageWidget = Icon(Icons.account_circle, size: 150);
           if (state.status == UserDataStatus.loading) {
             return const Center(child: CircularProgressIndicator());
           }
-          else if(state.status == UserDataStatus.dataInvalid) {
+          else if(state.status == UserDataStatus.error) {
             return ScaffoldMessenger(
               child: SnackBar(
                 content: Text(
@@ -49,7 +48,34 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
               ),
             );
           }
-          final imagePath = state.user?.imagePath ?? '';
+          else if (state.status == UserDataStatus.imageValid && state.imageFile != null) {
+            // Show picked image from local file
+            imageWidget = Image.file(
+              state.imageFile!,
+              fit: BoxFit.cover,
+              height: 150,
+              width: 150,
+            );
+          } else if (state.user?.imagePath != null && state.user!.imagePath!.isNotEmpty) {
+            // Show image from network URL
+            imageWidget = Image.network(
+              state.user!.imagePath!,
+              fit: BoxFit.cover,
+              height: 150,
+              width: 150,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return SizedBox(
+                  height: 150,
+                  width: 150,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(Icons.error, size: 150, color: Colors.red);
+              },
+            );
+          }
           return Center(
             child: Column(
               spacing: 30,
@@ -57,26 +83,7 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
               children: [
                 SizedBox(height: 15),
                 ClipOval(
-                  child: imagePath.isNotEmpty
-                      ? Image.network(
-                    state.user!.imagePath!,
-                    fit: BoxFit.cover,
-                    height: 150,
-                    width: 150,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return SizedBox(
-                        height: 150,
-                        width: 150,
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(Icons.error, size: 150, color: Colors.red);
-                    },
-                  ) : Icon(Icons.account_circle, size: 150),
+                  child: imageWidget
                 ),
                 Container(
                   margin: EdgeInsets.all(8),
@@ -85,8 +92,8 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => context.read<OnBoardingBloc>().add(
-                            OnBoardingChoseImage(imageSource: ImageSource.gallery),
+                          onPressed: () => context.read<UserDataBloc>().add(
+                            UserDataSendImage(imageSource: ImageSource.gallery),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.indigo,
@@ -105,8 +112,8 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
                       const SizedBox(width: 10), // spacing between buttons
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => context.read<OnBoardingBloc>().add(
-                            OnBoardingChoseImage(imageSource: ImageSource.camera),
+                          onPressed: () => context.read<UserDataBloc>().add(
+                            UserDataSendImage(imageSource: ImageSource.camera),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.indigo,
@@ -128,10 +135,10 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.5,
                   child: ElevatedButton(
-                    onPressed: () => context.read<OnBoardingBloc>().add(
-                      OnBoardingRegisterUser(),
+                    onPressed: () => context.read<UserDataBloc>().add(
+                      UserDataUpdateImage(),
                     ),
-                    child: Text(loc.registerDescriptionScreen_buttonValidate),
+                    child: Text("Validate new picture"),
                   ),
                 ),
               ],

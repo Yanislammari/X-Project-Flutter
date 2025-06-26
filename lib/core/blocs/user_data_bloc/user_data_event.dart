@@ -18,6 +18,10 @@ class UserDataSendImage extends UserDataEvent {
   const UserDataSendImage({required this.imageSource});
 }
 
+class UserDataUpdateImage extends UserDataEvent {
+  const UserDataUpdateImage();
+}
+
 class UserDataSendDescriptionAndPseudo extends UserDataEvent {
   final String? description;
   final String? pseudo;

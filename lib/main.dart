@@ -69,10 +69,10 @@ class MyApp extends StatelessWidget {
         BlocProvider<UserDataBloc>(
           create:
               (context) => UserDataBloc(
-            userRepository: UserRepository(
-              userDataSource: FirebaseUserDataSource(),
-            ),
-          ),
+                userRepository: UserRepository(
+                  userDataSource: FirebaseUserDataSource(),
+                ),
+              ),
         ),
       ],
       child: MaterialApp(
@@ -89,10 +89,7 @@ class MyApp extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF0028FF),
               foregroundColor: Colors.white,
-              textStyle: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
+              textStyle: TextStyle(color: Colors.white, fontSize: 13),
               padding: const EdgeInsets.all(15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
@@ -130,7 +127,8 @@ class MyApp extends StatelessWidget {
           ChosePasswordScreen.routeName:
               (context) => const ChosePasswordScreen(),
           ProfileScreen.routeName: (context) => const ProfileScreen(),
-          ProfileChangeImageScreen.routeName: (context) => const ProfileChangeImageScreen(),
+          ProfileChangeImageScreen.routeName:
+              (context) => const ProfileChangeImageScreen(),
         },
         onGenerateRoute: (RouteSettings settings) {
           switch (settings.name) {

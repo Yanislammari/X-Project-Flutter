@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:x_project_flutter/core/repositories/user_data/user_data_source.dart';
@@ -7,7 +9,10 @@ import '../../models/user.dart';
 class FirebaseUserDataSource extends UserDataSource{
 
   @override
-  Future<FirebaseUser?> getUserData() async {
+  Future<FirebaseUser?> getUserData(FirebaseUser? user) async {
+    if(user != null) {
+      return user;
+    }
     if(FirebaseAuth.instance.currentUser?.uid == null){
       throw Exception("No idea how leave and come back to this page");
     }
@@ -24,5 +29,27 @@ class FirebaseUserDataSource extends UserDataSource{
     }
     final data = docSnapshot.docs.first.data();
     return FirebaseUser.fromJson(data);
+  }
+
+  @override
+  Future<FirebaseUser?> updateUserImage(FirebaseUser? user,File? imageFile) async {
+    if (user == null) {
+      throw Exception("User is null, cannot update image");
+    }
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      throw Exception("No user logged in");
+    }
+
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    await userRef.update({
+      'imagePath': user.imagePath,
+    });
+
+    print("User image updated for UID: $uid");
+
+    return user;
   }
 }

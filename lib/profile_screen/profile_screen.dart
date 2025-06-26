@@ -30,9 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    if(context.read<UserDataBloc>().state.user == null) {
-      context.read<UserDataBloc>().add(UserDataFetch());
-    }
+    context.read<UserDataBloc>().add(UserDataFetch());
   }
 
   @override
@@ -46,7 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (state.status == UserDataStatus.loading) {
             // Loading indicator
             return Center(child: CircularProgressIndicator());
-          } else if (state.status == UserDataStatus.dataInvalid) {
+          } else if (state.status == UserDataStatus.error) {
             // Error screen
             return Center(
               child: Text(
