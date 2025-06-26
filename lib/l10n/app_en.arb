@@ -34,5 +34,19 @@
   "registerPasswordScreen_textFieldConfirmPasswordPlaceHolder": "Confirm password",
   "registerPasswordScreen_textTooShort": "Password must ba at least 6 characters",
   "registerPasswordScreen_textNotSame": "Password are not matching",
-  "registerPasswordScreen_buttonValidate": "Validate and go to onboarding"
+  "registerPasswordScreen_buttonValidate": "Validate and go to onboarding",
+
+  "profileScreen_title": "Profile",
+  "profileScreen_defaultError": "Nothing to update",
+  "profileScreen_defaultError2": "An error occurred, please try again later.",
+  "profileScreen_successMessage": "Profile updated successfully",
+  "profileScreen_buttonChangeProfilePic": "Change Profile Picture",
+  "profileScreen_textFieldPseudoPlaceholder": "New pseudo",
+  "profileScreen_textFieldBioPlaceholder": "New bio",
+  "profileScreen_buttonValidate": "Save new profile",
+
+  "profileChangePictureScreen_title": "Change profile picture",
+  "profileChangePictureScreen_defaultError": "An error occurred while updating your image. Please try again.",
+  "profileChangePictureScreen_successMessage": "Image updated successfully!",
+  "profileChangePictureScreen_buttonValidate": "Validate new picture"
 }

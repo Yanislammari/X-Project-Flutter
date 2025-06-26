@@ -4,6 +4,8 @@ import 'package:x_project_flutter/core/blocs/user_data_bloc/user_data_bloc.dart'
 import 'package:x_project_flutter/profile_screen/change_picture_screen.dart';
 import 'package:x_project_flutter/widget/text_field_decoration.dart';
 
+import '../l10n/generated/app_localizations.dart';
+
 class ProfileScreen extends StatefulWidget {
   static const String routeName = '/profile';
 
@@ -47,15 +49,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text('Profile')),
+      appBar: AppBar(title: Text(loc.profileScreen_title)),
       body: BlocListener<UserDataBloc, UserDataState>(
         listener: (context, state) {
           if (state.status == UserDataStatus.descBioInvalid) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  state.message ?? "Nothing to update",
+                  state.message ?? loc.profileScreen_defaultError,
                 ),
               ),
             );
@@ -68,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  "Profile updated successfully",
+                  loc.profileScreen_successMessage,
                 ),
               ),
             );
@@ -78,14 +81,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           else if(state.status == UserDataStatus.error) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  "An error occurred, please try again later.",
-                ),
+                content: Text(loc.profileScreen_defaultError2),
               ),
             );
           }
         },
         child: BlocBuilder<UserDataBloc, UserDataState>(
+          buildWhen: (prev, curr) => prev.user?.imagePath != curr.user?.imagePath,
           builder: (context, state) {
             if (state.status == UserDataStatus.loading) {
               // Loading indicator
@@ -94,14 +96,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Error screen
               return Center(
                 child: Text(
-                  "Error loading profile data, please try again later.",
+                  loc.profileScreen_defaultError2,
                   style: TextStyle(color: Colors.red, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
               );
             }
             else {
-              final imagePath = state.user?.imagePath ?? '';
               return SingleChildScrollView(
                 child: Container(
                   margin: EdgeInsets.all(15),
@@ -111,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       SizedBox(height: 20),
                       ClipOval(
                         child:
-                        imagePath.isNotEmpty
+                        (state.user?.imagePath?.isNotEmpty ?? false)
                             ? Image.network(
                           state.user!.imagePath!,
                           fit: BoxFit.cover,
@@ -147,22 +148,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // Wrap content tightly
                           children: [
                             Icon(Icons.mode),
-                            // Icon fitting "change profile picture"
                             SizedBox(width: 8),
-                            // Spacing between icon and text
-                            Text("Change Profile Picture"),
+                            Text(loc.profileScreen_buttonChangeProfilePic),
                           ],
                         ),
                       ),
                       SizedBox(height: 20),
                       TextField(
                         controller: pseudoController,
-                        decoration: textFieldMainDeco("New pseudo"),
+                        decoration: textFieldMainDeco(loc.profileScreen_textFieldPseudoPlaceholder),
                         maxLength: 25,
                       ),
                       TextField(
                         controller: bioController,
-                        decoration: textFieldMainDeco("New bio"),
+                        decoration: textFieldMainDeco(loc.profileScreen_textFieldBioPlaceholder),
                         maxLength: 350,
                         minLines: 5,
                         maxLines: 15,
@@ -176,7 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             bio: bioController.text,
                           ),
                         ),
-                        child: Text("Save new profile"),
+                        child: Text(loc.profileScreen_buttonValidate),
                       ),
                     ],
                   ),

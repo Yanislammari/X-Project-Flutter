@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:x_project_flutter/core/blocs/on_boarding_bloc/on_boarding_bloc.dart';
 import 'package:x_project_flutter/core/blocs/user_data_bloc/user_data_bloc.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -32,19 +31,19 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
     final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(loc.registerImageScreen_title)),
+      appBar: AppBar(title: Text(loc.profileChangePictureScreen_title)),
       body: BlocListener<UserDataBloc, UserDataState>(
         listener: (context, state) {
           if(state.status == UserDataStatus.updateImageSuccess){
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("Image updated successfully!"),
+                content: Text(loc.profileChangePictureScreen_successMessage),
               ),
             );
           } else if (state.status == UserDataStatus.imageInvalid) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("An error occurred while updating your image. Please try again."),
+                content: Text(loc.profileChangePictureScreen_defaultError),
               ),
             );
           }
@@ -58,7 +57,7 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
               return ScaffoldMessenger(
                 child: SnackBar(
                   content: Text(
-                    "An error occurred while loading your profile data. Please try again later.",
+                    loc.profileChangePictureScreen_defaultError,
                   ),
                 ),
               );
@@ -160,7 +159,7 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
                           () => context.read<UserDataBloc>().add(
                             UserDataUpdateImage(),
                           ),
-                      child: Text("Validate new picture"),
+                      child: Text(loc.profileChangePictureScreen_buttonValidate),
                     ),
                   ),
                 ],
