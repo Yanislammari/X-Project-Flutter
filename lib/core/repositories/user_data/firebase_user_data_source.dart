@@ -17,16 +17,16 @@ class FirebaseUserDataSource extends UserDataSource{
     if(FirebaseAuth.instance.currentUser?.uid == null){
       throw Exception("No idea how leave and come back to this page");
     }
-    String uid = FirebaseAuth.instance.currentUser!.uid;
     final docSnapshot = await FirebaseFirestore.instance
         .collection('users')
-        .where('user_uuid', isEqualTo: uid)
+        .doc(FirebaseAuth.instance.currentUser?.uid)
         .get();
 
-    if (!docSnapshot.docs.isNotEmpty) {
+    if (!docSnapshot.exists) {
       throw Exception("User data not found");
     }
-    final data = docSnapshot.docs.first.data();
+
+    final data = docSnapshot.data()!;
     return FirebaseUser.fromJson(data);
   }
 
@@ -44,24 +44,12 @@ class FirebaseUserDataSource extends UserDataSource{
       throw Exception("No image file provided");
     }
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('user_uuid', isEqualTo: uid)
-        .limit(1)
-        .get();
-
-    if (querySnapshot.docs.isEmpty) {
-      throw Exception("No user found");
-    }
-
-    final doc = querySnapshot.docs.first;
-    final userRef = FirebaseFirestore.instance.collection('users').doc(doc.id);
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
     final storageRef = FirebaseStorage.instance.ref();
-
 
     if (user.imagePath != null && user.imagePath!.isNotEmpty) {
       try {
-        FirebaseStorage.instance.refFromURL(user.imagePath!).delete();
+        await FirebaseStorage.instance.refFromURL(user.imagePath!).delete();
       } catch (e) {
         throw Exception("Failed to delete old image: $e");
       }
@@ -85,22 +73,12 @@ class FirebaseUserDataSource extends UserDataSource{
       throw Exception("No user logged in");
     }
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('user_uuid', isEqualTo: uid)
-        .limit(1)
-        .get();
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
 
-    if (querySnapshot.docs.isEmpty) {
-      throw Exception("No user found");
-    }
-
-    final doc = querySnapshot.docs.first;
-    final userRef = FirebaseFirestore.instance.collection('users').doc(doc.id);
-
-    final updatedData = <String, dynamic>{};
-    updatedData['pseudo'] = pseudo;
-    updatedData['bio'] = bio;
+    final updatedData = <String, dynamic>{
+      'pseudo': pseudo,
+      'bio': bio,
+    };
 
     await userRef.update(updatedData);
 

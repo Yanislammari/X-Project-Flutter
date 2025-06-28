@@ -44,11 +44,11 @@ class FirebaseLoginDataSource extends LoginDataSource {
 
   @override
   Future<bool> checkIfUserUidExist(String? uid) async {
-    final querySnapshot = await FirebaseFirestore.instance
+    final docSnapshot = await FirebaseFirestore.instance
         .collection('users')
-        .where('user_uuid', isEqualTo: uid)
-        .limit(1) // optional: only need to know if exists
+        .doc(uid)
         .get();
-    return querySnapshot.docs.isNotEmpty;
+
+    return docSnapshot.exists;
   }
 }

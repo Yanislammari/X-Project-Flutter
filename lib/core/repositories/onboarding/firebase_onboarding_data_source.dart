@@ -10,7 +10,7 @@ class FirebaseOnBoardingDataSource extends OnboardingDataSource{
   @override
   Future<void> registerUser(UserFromBloc user) async {
     if(FirebaseAuth.instance.currentUser?.uid == null){
-      throw Exception("No idea how leave and come back to this page");
+      throw Exception("Re login please");
     }
     String uid = FirebaseAuth.instance.currentUser!.uid;
     final ref = FirebaseStorage.instance
@@ -21,10 +21,9 @@ class FirebaseOnBoardingDataSource extends OnboardingDataSource{
     await ref.putFile(user.imageFile);
     final imageUrl = await ref.getDownloadURL();
 
-    await FirebaseFirestore.instance.collection('users').doc().set({
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
       'pseudo': user.pseudo,
       'bio': user.bio,
-      'user_uuid': uid,
       'image_path': imageUrl,
       'created_at': Timestamp.now(),
     });
