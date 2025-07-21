@@ -28,6 +28,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'login_screen/chose_login_screen.dart';
 import 'on_board_screen/onboarding_description_screen.dart';
 import 'on_board_screen/onboarding_image_screen.dart';
+import 'main_screen.dart';
+import 'package:x_project_flutter/core/blocs/tweet_bloc/tweet_bloc.dart';
+import 'package:x_project_flutter/core/repositories/tweet/firebase_tweet_data_source.dart';
+import 'package:x_project_flutter/core/repositories/tweet/tweet_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,106 +44,124 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return MultiRepositoryProvider(
       providers: [
-        BlocProvider<LoginBloc>(
-          create:
-              (context) => LoginBloc(
-                loginRepository: LoginRepository(
-                  loginDataSource: FirebaseLoginDataSource(),
-                ),
-              ),
+        RepositoryProvider(
+          create: (_) => UserRepository(userDataSource: FirebaseUserDataSource()),
         ),
-        BlocProvider<RegisterBloc>(
-          create:
-              (context) => RegisterBloc(
-                registerRepository: RegisterRepository(
-                  registerDataSource: FirebaseRegisterDataSource(),
-                ),
-              ),
-        ),
-        BlocProvider<OnBoardingBloc>(
-          create:
-              (context) => OnBoardingBloc(
-                onBoardingRepository: OnBoardingRepository(
-                  onboardingDataSource: FirebaseOnBoardingDataSource(),
-                ),
-              ),
-        ),
-        BlocProvider<UserDataBloc>(
-          create:
-              (context) => UserDataBloc(
-                userRepository: UserRepository(
-                  userDataSource: FirebaseUserDataSource(),
-                ),
-              ),
+        RepositoryProvider(
+          create: (_) => TweetRepository(tweetDataSource: FirebaseTweetDataSource()),
         ),
       ],
-      child: MaterialApp(
-        locale: const Locale('en'),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<LoginBloc>(
+            create:
+                (context) => LoginBloc(
+                  loginRepository: LoginRepository(
+                    loginDataSource: FirebaseLoginDataSource(),
+                  ),
+                ),
+          ),
+          BlocProvider<RegisterBloc>(
+            create:
+                (context) => RegisterBloc(
+                  registerRepository: RegisterRepository(
+                    registerDataSource: FirebaseRegisterDataSource(),
+                  ),
+                ),
+          ),
+          BlocProvider<OnBoardingBloc>(
+            create:
+                (context) => OnBoardingBloc(
+                  onBoardingRepository: OnBoardingRepository(
+                    onboardingDataSource: FirebaseOnBoardingDataSource(),
+                  ),
+                ),
+          ),
+          BlocProvider<UserDataBloc>(
+            create:
+                (context) => UserDataBloc(
+                  userRepository: UserRepository(
+                    userDataSource: FirebaseUserDataSource(),
+                  ),
+                ),
+          ),
+          BlocProvider<TweetBloc>(
+            create: (context) => TweetBloc(
+              tweetRepository: TweetRepository(tweetDataSource: FirebaseTweetDataSource()),
+            ),
+          ),
         ],
-        supportedLocales: L10n.all,
-        theme: ThemeData(
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF0028FF),
-              foregroundColor: Colors.white,
-              textStyle: TextStyle(color: Colors.white, fontSize: 13),
-              padding: const EdgeInsets.all(15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          debugShowCheckedModeBanner: false,
+          supportedLocales: L10n.all,
+          theme: ThemeData(
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF0028FF),
+                foregroundColor: Colors.white,
+                textStyle: TextStyle(color: Colors.white, fontSize: 13),
+                padding: const EdgeInsets.all(15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+            ),
+            textTheme: const TextTheme(
+              displayLarge: TextStyle(
+                fontSize: 23,
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+              displayMedium: TextStyle(
+                fontSize: 17,
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+              displaySmall: TextStyle(fontSize: 14, color: Colors.black),
+              labelSmall: TextStyle(
+                fontSize: 14,
+                color: Colors.blue,
+                decoration: TextDecoration.underline, // Apply underline
               ),
             ),
           ),
-          textTheme: const TextTheme(
-            displayLarge: TextStyle(
-              fontSize: 23,
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-            displayMedium: TextStyle(
-              fontSize: 17,
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-            displaySmall: TextStyle(fontSize: 14, color: Colors.black),
-            labelSmall: TextStyle(
-              fontSize: 14,
-              color: Colors.blue,
-              decoration: TextDecoration.underline, // Apply underline
-            ),
-          ),
-        ),
-        routes: {
-          Login.routeName: (context) => const Login(),
-          LoginEmailPasswdScreen.routeName:
-              (context) => const LoginEmailPasswdScreen(),
-          ChoseEmailScreen.routeName: (context) => const ChoseEmailScreen(),
-          OnboardingDescriptionScreen.routeName:
-              (context) => const OnboardingDescriptionScreen(),
-          OnboardingImageScreen.routeName:
-              (context) => const OnboardingImageScreen(),
-          ChosePasswordScreen.routeName:
-              (context) => const ChosePasswordScreen(),
-          ProfileScreen.routeName: (context) => const ProfileScreen(),
-          ProfileChangeImageScreen.routeName:
-              (context) => const ProfileChangeImageScreen(),
-        },
-        onGenerateRoute: (RouteSettings settings) {
-          switch (settings.name) {
-            case '/password':
-              return MaterialPageRoute(builder: (context) => const Login());
+          routes: {
+            Login.routeName: (context) => const Login(),
+            LoginEmailPasswdScreen.routeName:
+                (context) => const LoginEmailPasswdScreen(),
+            ChoseEmailScreen.routeName: (context) => const ChoseEmailScreen(),
+            OnboardingDescriptionScreen.routeName:
+                (context) => const OnboardingDescriptionScreen(),
+            OnboardingImageScreen.routeName:
+                (context) => const OnboardingImageScreen(),
+            ChosePasswordScreen.routeName:
+                (context) => const ChosePasswordScreen(),
+            ProfileScreen.routeName: (context) => const ProfileScreen(),
+            ProfileChangeImageScreen.routeName:
+                (context) => const ProfileChangeImageScreen(),
+            MainScreen.routeName: (context) => const MainScreen(),
+          },
+          onGenerateRoute: (RouteSettings settings) {
+            switch (settings.name) {
+              case '/password':
+                return MaterialPageRoute(builder: (context) => const Login());
 
-            default:
-              return null;
-          }
-        },
+              default:
+                return null;
+            }
+          },
+        ),
       ),
     );
   }
 }
+

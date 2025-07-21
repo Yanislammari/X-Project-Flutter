@@ -5,22 +5,26 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserFromBloc {
   final String pseudo;
   final String bio;
-  final File imageFile;
+  final File? imageFile;
+  final String? imageUrl;
 
   UserFromBloc({
     required this.pseudo,
     required this.bio,
-    required this.imageFile,
+    this.imageFile,
+    this.imageUrl,
   });
 }
 
 class FirebaseUser{
+  final String uid;
   final String? pseudo;
   final String? bio;
   final String? imagePath;
   final DateTime createdAt;
 
   FirebaseUser({
+    required this.uid,
     required this.pseudo,
     required this.bio,
     required this.imagePath,
@@ -28,6 +32,7 @@ class FirebaseUser{
   });
 
   FirebaseUser copyWith({
+    final String? uid,
     final String? pseudo,
     final String? bio,
     final String? imagePath,
@@ -35,6 +40,7 @@ class FirebaseUser{
 
   }) {
     return FirebaseUser(
+      uid: uid ?? this.uid,
       pseudo: pseudo ?? this.pseudo,
       bio: bio ?? this.bio,
       imagePath: imagePath ?? this.imagePath,
@@ -42,12 +48,24 @@ class FirebaseUser{
     );
   }
 
-  factory FirebaseUser.fromJson(Map<String, dynamic> json) {
+  factory FirebaseUser.fromJson(Map<String, dynamic> json, {required String uid}) {
     return FirebaseUser(
-      pseudo: json['pseudo'] as String,
-      bio: json['bio'] as String,
-      imagePath: json['image_path'] as String,
+      uid: uid,
+      pseudo: json['pseudo'] as String?,
+      bio: json['bio'] as String?,
+      imagePath: json['image_path'] as String?,
       createdAt: (json['created_at'] as Timestamp).toDate(),
+    );
+  }
+}
+
+extension FirebaseUserToUserFromBloc on FirebaseUser {
+  UserFromBloc toUserFromBloc() {
+    return UserFromBloc(
+      pseudo: pseudo ?? '',
+      bio: bio ?? '',
+      imageFile: null,
+      imageUrl: imagePath,
     );
   }
 }

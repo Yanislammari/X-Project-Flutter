@@ -18,7 +18,10 @@ class FirebaseOnBoardingDataSource extends OnboardingDataSource{
         .child('user_images')
         .child('$uid.jpg');
 
-    await ref.putFile(user.imageFile);
+    if (user.imageFile == null) {
+      throw Exception("Aucune image sélectionnée pour l'utilisateur.");
+    }
+    await ref.putFile(user.imageFile!);
     final imageUrl = await ref.getDownloadURL();
 
     await FirebaseFirestore.instance.collection('users').doc(uid).set({

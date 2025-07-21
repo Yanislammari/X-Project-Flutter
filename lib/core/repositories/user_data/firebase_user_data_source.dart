@@ -27,7 +27,7 @@ class FirebaseUserDataSource extends UserDataSource{
     }
 
     final data = docSnapshot.data()!;
-    return FirebaseUser.fromJson(data);
+    return FirebaseUser.fromJson(data, uid: docSnapshot.id);
   }
 
   @override
@@ -86,5 +86,29 @@ class FirebaseUserDataSource extends UserDataSource{
       pseudo: pseudo,
       bio: bio,
     );
+  }
+
+  @override
+  Future<FirebaseUser?> getUserById(String uid) async {
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+
+    if (!docSnapshot.exists) {
+      throw Exception("User data not found");
+    }
+
+    final data = docSnapshot.data()!;
+    return FirebaseUser.fromJson(data, uid: docSnapshot.id);
+  }
+
+  @override
+  Future<List<FirebaseUser>> getAllUsers() async {
+    final querySnapshot = await FirebaseFirestore.instance.collection('users').get();
+    return querySnapshot.docs
+        .where((doc) => doc.exists)
+        .map((doc) => FirebaseUser.fromJson(doc.data(), uid: doc.id))
+        .toList();
   }
 }

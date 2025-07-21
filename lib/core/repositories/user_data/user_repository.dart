@@ -20,4 +20,12 @@ class UserRepository {
   Future<FirebaseUser?> updateUserBio(String? pseudo, String? bio, FirebaseUser? user) async {
     return await userDataSource.updateUserBio(pseudo, bio, user);
   }
+
+  Future<FirebaseUser?> getUserById(String uid) async {
+    return await userDataSource.getUserById(uid);
+  }
+
+  Future<List<FirebaseUser>> getAllUsers() async {
+    return await userDataSource.getAllUsers();
+  }
 }
