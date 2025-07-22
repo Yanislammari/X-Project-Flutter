@@ -22,7 +22,6 @@ class MessageRepository {
         .doc(message.conversationId)
         .collection('messages')
         .add(message.toJson());
-    // Met à jour la conversation (lastMessage, updatedAt)
     await _firestore.collection('conversations').doc(message.conversationId).set({
       'lastMessage': message.toJson(),
       'updatedAt': message.sentAt,

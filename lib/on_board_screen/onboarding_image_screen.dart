@@ -23,7 +23,6 @@ class _OnboardingImageScreenState extends State<OnboardingImageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // final loc = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(

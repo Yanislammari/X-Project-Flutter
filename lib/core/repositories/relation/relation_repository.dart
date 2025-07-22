@@ -17,7 +17,6 @@ class RelationRepository {
     return query.docs.isNotEmpty;
   }
 
-  // Ajout pour la gestion des relations
   final _relationsCollection = FirebaseFirestore.instance.collection('relations');
 
   Future<void> createRelation(String userA, String userB) async {
@@ -67,11 +66,34 @@ class RelationRepository {
     }
   }
 
-  // Retourne la liste des userId que l'utilisateur suit (fromUserId = currentUserId)
   Future<List<String>> getFollowedUserIds(String currentUserId) async {
     final query = await _relationCollection
         .where('fromUserId', isEqualTo: currentUserId)
         .get();
     return query.docs.map((doc) => doc['toUserId'] as String).toList();
+  }
+
+  Future<List<String>> getRelatedUserIds(String currentUserId) async {
+    // Récupère toutes les relations établies où l'utilisateur actuel est impliqué
+    final query1 = await _relationsCollection
+        .where('firstUserId', isEqualTo: currentUserId)
+        .get();
+    final query2 = await _relationsCollection
+        .where('secondUserId', isEqualTo: currentUserId)
+        .get();
+    
+    final relatedIds = <String>{};
+    
+    // Ajoute les secondUserId des relations où currentUserId est firstUserId
+    for (final doc in query1.docs) {
+      relatedIds.add(doc['secondUserId'] as String);
+    }
+    
+    // Ajoute les firstUserId des relations où currentUserId est secondUserId
+    for (final doc in query2.docs) {
+      relatedIds.add(doc['firstUserId'] as String);
+    }
+    
+    return relatedIds.toList();
   }
 } 

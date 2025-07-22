@@ -11,6 +11,9 @@ import '../core/repositories/user_data/user_repository.dart';
 import '../core/repositories/user_data/firebase_user_data_source.dart';
 import 'conversation_screen.dart';
 import '../core/repositories/relation/relation_repository.dart';
+import '../core/blocs/relation_bloc/relation_bloc.dart';
+import '../core/blocs/relation_bloc/relation_event.dart';
+import '../core/blocs/relation_bloc/relation_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MessagesScreen extends StatelessWidget {
@@ -25,9 +28,16 @@ class MessagesScreen extends StatelessWidget {
         body: Center(child: Text('Utilisateur non connecté', style: TextStyle(color: Colors.white))),
       );
     }
-    return BlocProvider(
-      create: (_) => ConversationBloc(conversationRepository: ConversationRepository())
-        ..add(ListenConversations(user.uid)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => ConversationBloc(conversationRepository: ConversationRepository())
+            ..add(ListenConversations(user.uid)),
+        ),
+        BlocProvider(
+          create: (_) => RelationBloc(relationRepository: RelationRepository()),
+        ),
+      ],
       child: Scaffold(
         backgroundColor: Colors.black,
         body: BlocBuilder<ConversationBloc, ConversationState>(
@@ -109,20 +119,43 @@ class MessagesScreen extends StatelessWidget {
   }
 }
 
-class _StartConversationButton extends StatelessWidget {
+class _StartConversationButton extends StatefulWidget {
   final String currentUserId;
   const _StartConversationButton({required this.currentUserId});
 
-  Future<List<FirebaseUser>> _fetchFollowedUsers() async {
-    final repo = RelationRepository();
-    final followedIds = await repo.getFollowedUserIds(currentUserId);
-    final userRepo = UserRepository(userDataSource: FirebaseUserDataSource());
-    final users = <FirebaseUser>[];
-    for (final id in followedIds) {
-      final u = await userRepo.getUserById(id);
-      if (u != null) users.add(u);
+  @override
+  State<_StartConversationButton> createState() => _StartConversationButtonState();
+}
+
+class _StartConversationButtonState extends State<_StartConversationButton> {
+  List<FirebaseUser> relatedUsers = [];
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRelatedUsers();
+  }
+
+  Future<void> _loadRelatedUsers() async {
+    setState(() => isLoading = true);
+    try {
+      final repo = RelationRepository();
+      final relatedIds = await repo.getRelatedUserIds(widget.currentUserId);
+      final userRepo = UserRepository(userDataSource: FirebaseUserDataSource());
+      final users = <FirebaseUser>[];
+      for (final id in relatedIds) {
+        final u = await userRepo.getUserById(id);
+        if (u != null) users.add(u);
+      }
+      setState(() {
+        relatedUsers = users;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      print('Erreur lors du chargement des relations: $e');
     }
-    return users;
   }
 
   @override
@@ -138,49 +171,53 @@ class _StartConversationButton extends StatelessWidget {
             borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
           ),
           builder: (context) {
-            return FutureBuilder<List<FirebaseUser>>(
-              future: _fetchFollowedUsers(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final users = snapshot.data!;
-                if (users.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: Text('Vous ne suivez personne', style: TextStyle(color: Colors.white70))),
-                  );
-                }
-                return ListView(
-                  children: users.map((u) => ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: (u.imagePath != null && u.imagePath!.isNotEmpty)
-                          ? NetworkImage(u.imagePath!)
-                          : null,
-                      backgroundColor: Colors.grey[900],
-                      child: (u.imagePath == null || u.imagePath!.isEmpty)
-                          ? const Icon(Icons.person, color: Colors.white)
-                          : null,
-                    ),
-                    title: Text(u.pseudo ?? '', style: const TextStyle(color: Colors.white)),
-                    onTap: () async {
-                      final convId = await _getOrCreateConversation(currentUserId, u.uid!);
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ConversationScreen(
-                            conversationId: convId,
-                            otherUser: u,
+            return Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Choisir une conversation',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  if (isLoading)
+                    const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (relatedUsers.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(child: Text('Vous n\'avez aucune relation établie', style: TextStyle(color: Colors.white70))),
+                    )
+                  else
+                    ...relatedUsers.map((u) => ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: (u.imagePath != null && u.imagePath!.isNotEmpty)
+                            ? NetworkImage(u.imagePath!)
+                            : null,
+                        backgroundColor: Colors.grey[900],
+                        child: (u.imagePath == null || u.imagePath!.isEmpty)
+                            ? const Icon(Icons.person, color: Colors.white)
+                            : null,
+                      ),
+                      title: Text(u.pseudo ?? '', style: const TextStyle(color: Colors.white)),
+                      onTap: () async {
+                        final convId = await _getOrCreateConversation(widget.currentUserId, u.uid!);
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ConversationScreen(
+                              conversationId: convId,
+                              otherUser: u,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  )).toList(),
-                );
-              },
+                        );
+                      },
+                    )).toList(),
+                ],
+              ),
             );
           },
         );

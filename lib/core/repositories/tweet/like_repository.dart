@@ -13,7 +13,6 @@ class LikeRepository {
       'userId': userId,
       'tweetId': tweetId,
     });
-    // Incrémente le nombre de likes du tweet
     await firestore.collection('tweets').doc(tweetId).update({
       'likes': FieldValue.increment(1),
     });
@@ -22,7 +21,6 @@ class LikeRepository {
   Future<void> removeLike({required String userId, required String tweetId}) async {
     final likeRef = firestore.collection('likes').doc('\\${userId}_\\${tweetId}');
     await likeRef.delete();
-    // Décrémente le nombre de likes du tweet
     await firestore.collection('tweets').doc(tweetId).update({
       'likes': FieldValue.increment(-1),
     });

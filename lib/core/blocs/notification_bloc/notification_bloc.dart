@@ -14,12 +14,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<_NotificationsUpdated>((event, emit) {
       emit(NotificationLoaded(event.notifications));
       if (event.notifications.isNotEmpty) {
-        // Détecte la dernière notification reçue
         add(NotificationReceived(event.notifications.first));
       }
     });
     on<NotificationReceived>((event, emit) {
-      // Ici, tu pourrais marquer la notif comme non lue/lue, ou juste ignorer
     });
   }
 

@@ -33,12 +33,15 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
   Map<String, bool> commentIsLiked = {};
   Map<String, int> commentLikesCount = {};
   final likeRepository = LikeRepository();
+  bool mainTweetIsLiked = false;
+  int mainTweetLikesCount = 0;
 
   @override
   void initState() {
     super.initState();
     final tweetRepo = RepositoryProvider.of<TweetRepository>(context, listen: false);
     tweetBloc = TweetBloc(tweetRepository: tweetRepo);
+    _initMainTweetLike();
     _fetchComments();
   }
 
@@ -112,6 +115,34 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
     _fetchComments();
   }
 
+  Future<void> _initMainTweetLike() async {
+    if (user != null) {
+      final liked = await likeRepository.isLiked(userId: user!.uid, tweetId: widget.tweet.id);
+      setState(() {
+        mainTweetIsLiked = liked;
+        mainTweetLikesCount = widget.tweet.likes;
+      });
+    } else {
+      setState(() {
+        mainTweetIsLiked = false;
+        mainTweetLikesCount = widget.tweet.likes;
+      });
+    }
+  }
+
+  void _handleMainTweetLike() async {
+    if (user == null) return;
+    setState(() {
+      mainTweetIsLiked = !mainTweetIsLiked;
+      mainTweetLikesCount += mainTweetIsLiked ? 1 : -1;
+    });
+    if (mainTweetIsLiked) {
+      tweetBloc.add(LikeTweet(userId: user!.uid, tweetId: widget.tweet.id));
+    } else {
+      tweetBloc.add(UnlikeTweet(userId: user!.uid, tweetId: widget.tweet.id));
+    }
+  }
+
   void _handleLikeComment(Tweet comment) async {
     if (user == null) return;
     final isLiked = commentIsLiked[comment.id] ?? false;
@@ -146,10 +177,10 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: TweetWidget(
-                tweet: widget.tweet,
+                tweet: widget.tweet.copyWith(likes: mainTweetLikesCount),
                 author: widget.author,
-                isLiked: false, // à adapter si besoin
-                onLike: () {},
+                isLiked: mainTweetIsLiked,
+                onLike: _handleMainTweetLike,
               ),
             ),
             const Divider(color: Colors.grey, height: 0),
