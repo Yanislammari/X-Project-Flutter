@@ -121,10 +121,9 @@ class _MainScreenState extends State<MainScreen> {
                 final imageUrl = firebaseUser.imagePath;
                 return GestureDetector(
                   onTap: () async {
-                    final result = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ProfileScreen(userId: user!.uid),
-                      ),
+                    final result = await Navigator.of(context).pushNamed(
+                      ProfileScreen.routeName,
+                      arguments: {'userId': user!.uid},
                     );
                     if (result == 'refresh') {
                       shouldRefetchTweets.value = true;

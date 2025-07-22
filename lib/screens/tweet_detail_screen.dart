@@ -13,9 +13,16 @@ import '../core/blocs/tweet_bloc/tweet_bloc.dart';
 import '../core/blocs/tweet_bloc/tweet_event.dart';
 
 class TweetDetailScreen extends StatefulWidget {
-  final Tweet tweet;
-  final UserFromBloc author;
-  const TweetDetailScreen({super.key, required this.tweet, required this.author});
+  final String tweetId;
+  final String authorId;
+  
+  const TweetDetailScreen({
+    super.key, 
+    required this.tweetId, 
+    required this.authorId
+  });
+
+  static const String routeName = '/tweet-detail';
 
   @override
   State<TweetDetailScreen> createState() => _TweetDetailScreenState();
@@ -29,11 +36,36 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
   final likeRepository = LikeRepository();
   bool mainTweetIsLiked = false;
   int mainTweetLikesCount = 0;
+  
+  Tweet? currentTweet;
+  UserFromBloc? currentAuthor;
+  bool isLoadingData = true;
 
   @override
   void initState() {
     super.initState();
-    _initMainTweetLike();
+    _loadTweetData();
+  }
+
+  Future<void> _loadTweetData() async {
+    try {
+      final userRepository = RepositoryProvider.of<UserRepository>(context, listen: false);
+      
+      final author = await userRepository.getUserById(widget.authorId);
+      if (author != null) {
+        setState(() {
+          currentAuthor = author.toUserFromBloc();
+        });
+      }
+      
+      // Déclencher le chargement des tweets
+      context.read<TweetBloc>().add(FetchTweets());
+    } catch (e) {
+      print('Erreur lors du chargement des données: $e');
+      setState(() {
+        isLoadingData = false;
+      });
+    }
   }
 
   Future<void> _pickImage() async {
@@ -56,7 +88,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
         content: content,
         imageFile: _imageFile,
         isComment: true,
-        replyToTweetId: widget.tweet.id,
+        replyToTweetId: widget.tweetId,
       ),
     );
     
@@ -70,15 +102,15 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
 
   Future<void> _initMainTweetLike() async {
     if (user != null) {
-      final liked = await likeRepository.isLiked(userId: user!.uid, tweetId: widget.tweet.id);
+      final liked = await likeRepository.isLiked(userId: user!.uid, tweetId: widget.tweetId);
       setState(() {
         mainTweetIsLiked = liked;
-        mainTweetLikesCount = widget.tweet.likes;
+        mainTweetLikesCount = currentTweet?.likes ?? 0;
       });
     } else {
       setState(() {
         mainTweetIsLiked = false;
-        mainTweetLikesCount = widget.tweet.likes;
+        mainTweetLikesCount = currentTweet?.likes ?? 0;
       });
     }
   }
@@ -91,9 +123,9 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
     });
     final tweetBloc = context.read<TweetBloc>();
     if (mainTweetIsLiked) {
-      tweetBloc.add(LikeTweet(userId: user!.uid, tweetId: widget.tweet.id));
+      tweetBloc.add(LikeTweet(userId: user!.uid, tweetId: widget.tweetId));
     } else {
-      tweetBloc.add(UnlikeTweet(userId: user!.uid, tweetId: widget.tweet.id));
+      tweetBloc.add(UnlikeTweet(userId: user!.uid, tweetId: widget.tweetId));
     }
   }
 
@@ -102,10 +134,22 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
     return BlocListener<TweetBloc, TweetState>(
       listener: (context, state) {
         if (state.status == TweetStatus.loaded && state.tweets != null) {
-          // Vérifier si le tweet principal a été supprimé
-          final mainTweetExists = state.tweets!.any((t) => t.id == widget.tweet.id);
-          if (!mainTweetExists) {
+          // Récupérer le tweet spécifique
+          final tweet = state.tweets!.firstWhere(
+            (t) => t.id == widget.tweetId,
+            orElse: () => Tweet.empty(),
+          );
+          
+          if (tweet.id.isEmpty) {
+            // Tweet introuvable, retourner
             Navigator.of(context).pop();
+          } else {
+            // Mettre à jour le tweet actuel et initialiser les likes
+            setState(() {
+              currentTweet = tweet;
+              isLoadingData = false;
+            });
+            _initMainTweetLike();
           }
         }
       },
@@ -149,349 +193,356 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
             ),
           ],
         ),
-        body: GestureDetector(
-          onTap: () {
-            // Fermer le clavier quand on tape ailleurs
-            FocusScope.of(context).unfocus();
-          },
-          child: Column(
-            children: [
-              Expanded(
-                child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    // Main Tweet
-                    SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Color(0xFF2F3336),
-                              width: 0.5,
-                            ),
-                          ),
-                        ),
-                        child: TweetWidget(
-                          tweet: widget.tweet.copyWith(likes: mainTweetLikesCount),
-                          author: widget.author,
-                          isLiked: mainTweetIsLiked,
-                          onLike: _handleMainTweetLike,
-                          currentUserId: user?.uid,
-                          onDeleteTweet: (tweetId) {
-                            context.read<TweetBloc>().add(DeleteTweet(tweetId: tweetId));
-                          },
-                        ),
-                      ),
-                    ),
-                    // Comments Header and List
-                    BlocBuilder<TweetBloc, TweetState>(
-                      builder: (context, state) {
-                        if (state.status == TweetStatus.loaded && state.tweets != null) {
-                                                      final comments = state.tweets!.where((t) => t.isComment == true && t.replyToTweetId == widget.tweet.id).toList();
-                          
-                          return SliverMainAxisGroup(
-                            slivers: [
-                              // Comments Header
-                              SliverToBoxAdapter(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: Color(0xFF2F3336),
-                                        width: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.chat_bubble_outline,
-                                        color: Color(0xFF1D9BF0),
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Réponses (${comments.length})',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
+        body: isLoadingData || currentTweet == null || currentAuthor == null
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF1D9BF0),
+                  strokeWidth: 2,
+                ),
+              )
+            : GestureDetector(
+                onTap: () {
+                  // Fermer le clavier quand on tape ailleurs
+                  FocusScope.of(context).unfocus();
+                },
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          // Main Tweet
+                          SliverToBoxAdapter(
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Color(0xFF2F3336),
+                                    width: 0.5,
                                   ),
                                 ),
                               ),
-                              // Comments List
-                              if (comments.isEmpty)
-                                SliverToBoxAdapter(
+                              child: TweetWidget(
+                                tweet: currentTweet!.copyWith(likes: mainTweetLikesCount),
+                                author: currentAuthor!,
+                                isLiked: mainTweetIsLiked,
+                                onLike: _handleMainTweetLike,
+                                currentUserId: user?.uid,
+                                onDeleteTweet: (tweetId) {
+                                  context.read<TweetBloc>().add(DeleteTweet(tweetId: tweetId));
+                                },
+                              ),
+                            ),
+                          ),
+                          // Comments Section
+                          BlocBuilder<TweetBloc, TweetState>(
+                            builder: (context, state) {
+                              if (state.status == TweetStatus.loaded && state.tweets != null) {
+                                final comments = state.tweets!.where((t) => t.isComment == true && t.replyToTweetId == widget.tweetId).toList();
+                                
+                                return SliverMainAxisGroup(
+                                  slivers: [
+                                    // Comments Header
+                                    SliverToBoxAdapter(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Color(0xFF2F3336),
+                                              width: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.chat_bubble_outline,
+                                              color: Color(0xFF1D9BF0),
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Réponses (${comments.length})',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    // Comments List
+                                    if (comments.isEmpty)
+                                      SliverToBoxAdapter(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(64),
+                                          child: const Center(
+                                            child: Column(
+                                              children: [
+                                                Icon(
+                                                  Icons.chat_bubble_outline,
+                                                  color: Color(0xFF71767B),
+                                                  size: 64,
+                                                ),
+                                                SizedBox(height: 16),
+                                                Text(
+                                                  'Aucune réponse',
+                                                  style: TextStyle(
+                                                    color: Color(0xFF71767B),
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 8),
+                                                Text(
+                                                  'Soyez le premier à répondre à ce Tweet',
+                                                  style: TextStyle(
+                                                    color: Color(0xFF71767B),
+                                                    fontSize: 15,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      SliverList(
+                                        delegate: SliverChildBuilderDelegate(
+                                          (context, index) {
+                                            return CommentItem(
+                                              comment: comments[index],
+                                              userId: user?.uid,
+                                            );
+                                          },
+                                          childCount: comments.length,
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              } else if (state.status == TweetStatus.loading) {
+                                return SliverToBoxAdapter(
                                   child: Container(
                                     padding: const EdgeInsets.all(64),
                                     child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF1D9BF0),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else if (state.status == TweetStatus.error) {
+                                return SliverToBoxAdapter(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(32),
                                       child: Column(
                                         children: [
-                                          Icon(
-                                            Icons.chat_bubble_outline,
-                                            color: Color(0xFF71767B),
-                                            size: 64,
+                                          const Icon(
+                                            Icons.error_outline,
+                                            color: Color(0xFFF4212E),
+                                            size: 48,
                                           ),
-                                          SizedBox(height: 16),
+                                          const SizedBox(height: 16),
                                           Text(
-                                            'Aucune réponse',
-                                            style: TextStyle(
-                                              color: Color(0xFF71767B),
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            'Soyez le premier à répondre à ce Tweet',
-                                            style: TextStyle(
-                                              color: Color(0xFF71767B),
-                                              fontSize: 15,
-                                            ),
+                                            state.message ?? 'Une erreur est survenue',
+                                            style: const TextStyle(color: Colors.white),
                                             textAlign: TextAlign.center,
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                )
-                              else
-                                SliverList(
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      return CommentItem(
-                                        comment: comments[index],
-                                        userId: user?.uid,
-                                      );
-                                    },
-                                    childCount: comments.length,
+                                );
+                              } else {
+                                return SliverToBoxAdapter(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(64),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF1D9BF0),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                          // Padding supplémentaire pour éviter que le dernier élément soit caché
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 100 : 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Zone de saisie fixe en bas
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1E1E1E),
+                        border: Border(
+                          top: BorderSide(
+                            color: Color(0xFF2F3336),
+                            width: 0.5,
+                          ),
+                        ),
+                      ),
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      constraints: const BoxConstraints(
+                                        minHeight: 40,
+                                        maxHeight: 100,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF16181C),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: const Color(0xFF2F3336),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: TextField(
+                                        controller: _controller,
+                                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                                        maxLines: null,
+                                        textCapitalization: TextCapitalization.sentences,
+                                        decoration: const InputDecoration(
+                                          hintText: "Tweete ta réponse...",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFF71767B),
+                                            fontSize: 16,
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF16181C),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: const Color(0xFF2F3336),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.image_outlined,
+                                        color: Color(0xFF1D9BF0),
+                                        size: 20,
+                                      ),
+                                      onPressed: _pickImage,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF1D9BF0), Color(0xFF0F5F8F)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF1D9BF0).withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _isLoading
+                                        ? Container(
+                                            width: 40,
+                                            height: 40,
+                                            padding: const EdgeInsets.all(8),
+                                            child: const CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : IconButton(
+                                            icon: const Icon(
+                                              Icons.send_rounded,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                            onPressed: _submitComment,
+                                          ),
+                                  ),
+                                ],
+                              ),
+                              if (_imageFile != null) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFF2F3336),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.file(
+                                          _imageFile!,
+                                          height: 120,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: GestureDetector(
+                                          onTap: () => setState(() => _imageFile = null),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(0.7),
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
+                              ],
                             ],
-                          );
-                        } else if (state.status == TweetStatus.loading) {
-                          return SliverToBoxAdapter(
-                            child: Container(
-                              padding: const EdgeInsets.all(64),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF1D9BF0),
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          );
-                        } else if (state.status == TweetStatus.error) {
-                          return SliverToBoxAdapter(
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: Column(
-                                  children: [
-                                    const Icon(
-                                      Icons.error_outline,
-                                      color: Color(0xFFF4212E),
-                                      size: 48,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      state.message ?? 'Une erreur est survenue',
-                                      style: const TextStyle(color: Colors.white),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        } else {
-                          return SliverToBoxAdapter(
-                            child: Container(
-                              padding: const EdgeInsets.all(64),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF1D9BF0),
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    // Padding supplémentaire pour éviter que le dernier élément soit caché
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 100 : 16),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              // Zone de saisie fixe en bas
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1E1E1E),
-                  border: Border(
-                    top: BorderSide(
-                      color: Color(0xFF2F3336),
-                      width: 0.5,
-                    ),
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Container(
-                                constraints: const BoxConstraints(
-                                  minHeight: 40,
-                                  maxHeight: 100,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF16181C),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: const Color(0xFF2F3336),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: TextField(
-                                  controller: _controller,
-                                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                                  maxLines: null,
-                                  textCapitalization: TextCapitalization.sentences,
-                                  decoration: const InputDecoration(
-                                    hintText: "Tweete ta réponse...",
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFF71767B),
-                                      fontSize: 16,
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF16181C),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: const Color(0xFF2F3336),
-                                  width: 1,
-                                ),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.image_outlined,
-                                  color: Color(0xFF1D9BF0),
-                                  size: 20,
-                                ),
-                                onPressed: _pickImage,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF1D9BF0), Color(0xFF0F5F8F)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF1D9BF0).withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: _isLoading
-                                  ? Container(
-                                      width: 40,
-                                      height: 40,
-                                      padding: const EdgeInsets.all(8),
-                                      child: const CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : IconButton(
-                                      icon: const Icon(
-                                        Icons.send_rounded,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      onPressed: _submitComment,
-                                    ),
-                            ),
-                          ],
-                        ),
-                        if (_imageFile != null) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF2F3336),
-                                width: 1,
-                              ),
-                            ),
-                            child: Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.file(
-                                    _imageFile!,
-                                    height: 120,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _imageFile = null),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.7),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:x_project_flutter/profile_screen/profile_screen.dart';
 import 'package:x_project_flutter/main_screen.dart';
+import 'package:x_project_flutter/register_screen/chose_email_screen.dart';
 
 import '../core/blocs/login_bloc/login_bloc.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -190,7 +191,9 @@ class _LoginState extends State<Login> {
                   const SizedBox(height: 24),
                   // Option d'inscription
                   TextButton(
-                    onPressed: () {/* Naviguer vers l'inscription */},
+                    onPressed: () {
+                      ChoseEmailScreen.navigateTo(context);
+                    },
                     child: const Text(
                       'No account? Sign up',
                       style: TextStyle(color: Colors.white70, fontSize: 15),

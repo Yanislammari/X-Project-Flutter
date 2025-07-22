@@ -19,6 +19,15 @@ class Tweet {
     this.replyToTweetId,
   });
 
+  Tweet.empty() : 
+    id = '',
+    userId = '',
+    content = '',
+    photo = null,
+    likes = 0,
+    isComment = false,
+    replyToTweetId = null;
+
   Tweet copyWith({
     String? id,
     String? userId,

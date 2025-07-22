@@ -14,6 +14,13 @@ class UserFromBloc {
     this.imageFile,
     this.imageUrl,
   });
+
+  // Constructeur par défaut pour les cas de chargement
+  UserFromBloc.empty() : 
+    pseudo = '',
+    bio = '',
+    imageFile = null,
+    imageUrl = null;
 }
 
 class FirebaseUser{

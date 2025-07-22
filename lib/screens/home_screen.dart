@@ -95,10 +95,9 @@ class _TweetListViewState extends State<_TweetListView> {
   }
 
   void _openProfileScreen(BuildContext context, String userId) async {
-    final result = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ProfileScreen(userId: userId),
-      ),
+    final result = await Navigator.of(context).pushNamed(
+      ProfileScreen.routeName,
+      arguments: {'userId': userId},
     );
     if (result == 'refresh') {
       context.read<TweetBloc>().add(FetchTweets());
@@ -266,26 +265,13 @@ class _TweetListViewState extends State<_TweetListView> {
                               final user = (snapshot.data as FirebaseUser).toUserFromBloc();
                               return GestureDetector(
                                 onTap: () async {
-                                  await Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => MultiRepositoryProvider(
-                                        providers: [
-                                          RepositoryProvider.value(value: RepositoryProvider.of<TweetRepository>(context)),
-                                          RepositoryProvider.value(value: RepositoryProvider.of<UserRepository>(context)),
-                                        ],
-                                        child: BlocProvider(
-                                          create: (context) => TweetBloc(
-                                            tweetRepository: RepositoryProvider.of<TweetRepository>(context),
-                                          )..add(FetchTweets()),
-                                          child: TweetDetailScreen(
-                                            tweet: tweet,
-                                            author: user,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                  await Navigator.of(context).pushNamed(
+                                    TweetDetailScreen.routeName,
+                                    arguments: {
+                                      'tweetId': tweet.id,
+                                      'authorId': tweet.userId,
+                                    },
                                   );
-                                  // Rafraîchir après retour du détail
                                   context.read<TweetBloc>().add(FetchTweets());
                                 },
                                 child: TweetItem(

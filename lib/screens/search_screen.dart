@@ -172,10 +172,9 @@ class _SearchScreenState extends State<SearchScreen> {
                               user: user,
                               query: _controller.text,
                               onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => ProfileScreen(userId: user.uid),
-                                  ),
+                                Navigator.of(context).pushNamed(
+                                  ProfileScreen.routeName,
+                                  arguments: {'userId': user.uid},
                                 );
                               },
                             );

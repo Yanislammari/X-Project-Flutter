@@ -70,23 +70,18 @@ class NotificationWidget extends StatelessWidget {
                 final tweetRepo = TweetRepository(tweetDataSource: FirebaseTweetDataSource());
                 final tweet = await tweetRepo.fetchTweetById(notification.likeId!);
                 if (tweet != null) {
-                  final author = await UserRepository(userDataSource: FirebaseUserDataSource()).getUserById(tweet.userId);
-                  if (author != null) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TweetDetailScreen(
-                          tweet: tweet,
-                          author: author.toUserFromBloc(),
-                        ),
-                      ),
-                    );
-                  }
+                  Navigator.of(context).pushNamed(
+                    TweetDetailScreen.routeName,
+                    arguments: {
+                      'tweetId': tweet.id,
+                      'authorId': tweet.userId,
+                    },
+                  );
                 }
               } else if (notification.type == NotificationType.AskingRelationReceived && notification.userId.isNotEmpty) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ProfileScreen(userId: notification.userId),
-                  ),
+                Navigator.of(context).pushNamed(
+                  ProfileScreen.routeName,
+                  arguments: {'userId': notification.userId},
                 );
               }
             },

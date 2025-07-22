@@ -123,15 +123,15 @@ class MessagesScreen extends StatelessWidget {
               Expanded(
                 child: BlocBuilder<ConversationBloc, ConversationState>(
                   builder: (context, state) {
-                                          if (state.status == ConversationStatus.initial) {
+                     if (state.status == ConversationStatus.initial) {
                       return const Center(
                         child: CircularProgressIndicator(
                           color: Color(0xFF1D9BF0),
                           strokeWidth: 2,
                         ),
                       );
-                                          } else if (state.status == ConversationStatus.loaded && state.conversations != null) {
-                                              if (state.conversations!.isEmpty) {
+                      } else if (state.status == ConversationStatus.loaded && state.conversations != null) {
+                        if (state.conversations!.isEmpty) {
                         return const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -224,7 +224,7 @@ class MessagesScreen extends StatelessWidget {
                           );
                         },
                       );
-                                          } else if (state.status == ConversationStatus.error) {
+                  } else if (state.status == ConversationStatus.error) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -350,13 +350,12 @@ class ConversationItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ConversationScreen(
-                conversationId: conversation.id,
-                otherUser: otherUser,
-              ),
-            ),
+          Navigator.of(context).pushNamed(
+            ConversationScreen.routeName,
+            arguments: {
+              'conversationId': conversation.id,
+              'otherUserId': otherUser.uid,
+            },
           );
         },
         child: Container(
@@ -609,13 +608,12 @@ class _StartConversationModalState extends State<_StartConversationModal> {
                               onTap: () async {
                                 final convId = await _getOrCreateConversation(widget.currentUserId, user.uid!);
                                 Navigator.of(context).pop();
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => ConversationScreen(
-                                      conversationId: convId,
-                                      otherUser: user,
-                                    ),
-                                  ),
+                                Navigator.of(context).pushNamed(
+                                  ConversationScreen.routeName,
+                                  arguments: {
+                                    'conversationId': convId,
+                                    'otherUserId': user.uid,
+                                  },
                                 );
                               },
                               child: Container(

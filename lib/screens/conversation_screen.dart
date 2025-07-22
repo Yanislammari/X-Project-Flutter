@@ -6,11 +6,15 @@ import '../core/blocs/message_bloc/message_event.dart';
 import '../core/repositories/message/message_repository.dart';
 import '../core/models/message.dart';
 import '../core/models/user.dart';
+import '../core/repositories/user_data/user_repository.dart';
+import '../core/repositories/user_data/firebase_user_data_source.dart';
 
 class ConversationScreen extends StatefulWidget {
   final String conversationId;
-  final FirebaseUser otherUser;
-  const ConversationScreen({super.key, required this.conversationId, required this.otherUser});
+  final String otherUserId;
+  const ConversationScreen({super.key, required this.conversationId, required this.otherUserId});
+
+  static const String routeName = '/conversation';
 
   @override
   State<ConversationScreen> createState() => _ConversationScreenState();
@@ -19,10 +23,50 @@ class ConversationScreen extends StatefulWidget {
 class _ConversationScreenState extends State<ConversationScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  FirebaseUser? otherUser;
+  bool isLoadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOtherUser();
+  }
+
+  Future<void> _loadOtherUser() async {
+    try {
+      final userRepo = UserRepository(userDataSource: FirebaseUserDataSource());
+      final user = await userRepo.getUserById(widget.otherUserId);
+      if (mounted) {
+        setState(() {
+          otherUser = user;
+          isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoadingUser = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    
+    if (isLoadingUser || otherUser == null) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF1D9BF0),
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+    
     return BlocProvider(
       create: (_) => MessageBloc(messageRepository: MessageRepository())
         ..add(ListenMessages(widget.conversationId)),
@@ -56,19 +100,19 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     ),
                   ),
                   child: CircleAvatar(
-                    backgroundImage: (widget.otherUser.imagePath != null && widget.otherUser.imagePath!.isNotEmpty)
-                        ? NetworkImage(widget.otherUser.imagePath!)
+                                      backgroundImage: (otherUser!.imagePath != null && otherUser!.imagePath!.isNotEmpty)
+                      ? NetworkImage(otherUser!.imagePath!)
                         : null,
                     radius: 16,
                     backgroundColor: const Color(0xFF536471),
-                    child: (widget.otherUser.imagePath == null || widget.otherUser.imagePath!.isEmpty)
+                    child: (otherUser!.imagePath == null || otherUser!.imagePath!.isEmpty)
                         ? const Icon(Icons.person, color: Colors.white, size: 18)
                         : null,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  widget.otherUser.pseudo ?? '',
+                  otherUser!.pseudo ?? '',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -175,7 +219,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                               showAvatar: showAvatar,
                               isFirstInGroup: isFirstInGroup,
                               isLastInGroup: isLastInGroup,
-                              otherUser: widget.otherUser,
+                              otherUser: otherUser!,
                             );
                           },
                         );
@@ -290,7 +334,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                   final msg = Message(
                                     id: '',
                                     conversationId: widget.conversationId,
-                                    receiverId: widget.otherUser.uid!,
+                                    receiverId: otherUser!.uid,
                                     content: content,
                                     sentAt: DateTime.now(),
                                     senderId: user.uid,

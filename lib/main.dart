@@ -30,8 +30,12 @@ import 'on_board_screen/onboarding_description_screen.dart';
 import 'on_board_screen/onboarding_image_screen.dart';
 import 'main_screen.dart';
 import 'package:x_project_flutter/core/blocs/tweet_bloc/tweet_bloc.dart';
+import 'package:x_project_flutter/core/blocs/tweet_bloc/tweet_event.dart';
 import 'package:x_project_flutter/core/repositories/tweet/firebase_tweet_data_source.dart';
 import 'package:x_project_flutter/core/repositories/tweet/tweet_repository.dart';
+import 'package:x_project_flutter/screens/tweet_detail_screen.dart';
+import 'package:x_project_flutter/screens/profile_screen.dart' as view_profile;
+import 'package:x_project_flutter/screens/conversation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -154,7 +158,38 @@ class MyApp extends StatelessWidget {
             switch (settings.name) {
               case '/password':
                 return MaterialPageRoute(builder: (context) => const Login());
-
+              case TweetDetailScreen.routeName:
+                final args = settings.arguments as Map<String, String>;
+                return MaterialPageRoute(
+                  builder: (context) => MultiRepositoryProvider(
+                    providers: [
+                      RepositoryProvider(create: (_) => TweetRepository(tweetDataSource: FirebaseTweetDataSource())),
+                      RepositoryProvider(create: (_) => UserRepository(userDataSource: FirebaseUserDataSource())),
+                    ],
+                    child: BlocProvider(
+                      create: (context) => TweetBloc(
+                        tweetRepository: RepositoryProvider.of<TweetRepository>(context),
+                      )..add(FetchTweets()),
+                      child: TweetDetailScreen(
+                        tweetId: args['tweetId']!,
+                        authorId: args['authorId']!,
+                      ),
+                    ),
+                  ),
+                );
+              case view_profile.ProfileScreen.routeName:
+                final args = settings.arguments as Map<String, String>;
+                return MaterialPageRoute(
+                  builder: (context) => view_profile.ProfileScreen(userId: args['userId']!),
+                );
+              case ConversationScreen.routeName:
+                final args = settings.arguments as Map<String, String>;
+                return MaterialPageRoute(
+                  builder: (context) => ConversationScreen(
+                    conversationId: args['conversationId']!,
+                    otherUserId: args['otherUserId']!,
+                  ),
+                );
               default:
                 return null;
             }

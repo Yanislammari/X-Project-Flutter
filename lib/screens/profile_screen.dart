@@ -22,6 +22,8 @@ class ProfileScreen extends StatefulWidget {
   final VoidCallback? onPopRefetch;
   const ProfileScreen({super.key, required this.userId, this.onPopRefetch});
 
+  static const String routeName = '/profile-view';
+
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -524,24 +526,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               context.read<TweetBloc>().add(DeleteTweet(tweetId: tweetId));
                             },
                             onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => MultiRepositoryProvider(
-                                    providers: [
-                                      RepositoryProvider.value(value: RepositoryProvider.of<TweetRepository>(context)),
-                                      RepositoryProvider.value(value: RepositoryProvider.of<UserRepository>(context)),
-                                    ],
-                                    child: BlocProvider(
-                                      create: (context) => TweetBloc(
-                                        tweetRepository: RepositoryProvider.of<TweetRepository>(context),
-                                      )..add(FetchTweets()),
-                                      child: TweetDetailScreen(
-                                        tweet: tweet,
-                                        author: user!,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                              Navigator.of(context).pushNamed(
+                                TweetDetailScreen.routeName,
+                                arguments: {
+                                  'tweetId': tweet.id,
+                                  'authorId': tweet.userId,
+                                },
                               );
                             },
                           );
