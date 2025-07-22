@@ -13,6 +13,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/add_tweet_screen.dart';
 import '../core/blocs/tweet_bloc/tweet_bloc.dart';
 import '../core/blocs/tweet_bloc/tweet_event.dart';
+import '../core/blocs/tweet_bloc/tweet_state.dart';
 import '../screens/tweet_detail_screen.dart';
 import '../screens/profile_screen.dart';
 import '../globals.dart';
@@ -131,70 +132,80 @@ class _TweetListViewState extends State<_TweetListView> {
   @override
   Widget build(BuildContext context) {
     final userRepository = RepositoryProvider.of<UserRepository>(context);
-    return Scaffold(
-      backgroundColor: Colors.black,
-      // AppBar supprimée, elle est maintenant gérée dans MainScreen
-      body: SafeArea(
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : error != null
-                ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
-                : RefreshIndicator(
-                    onRefresh: _fetchTweets,
-                    child: ListView.builder(
-                      itemCount: tweets.where((t) => !t.isComment).length,
-                      itemBuilder: (context, index) {
-                        final tweet = tweets.where((t) => !t.isComment).toList()[index];
-                        return FutureBuilder(
-                          future: userRepository.getUserById(tweet.userId),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 24.0),
-                                child: Center(child: CircularProgressIndicator()),
-                              );
-                            }
-                            if (!snapshot.hasData || snapshot.data == null) {
-                              return const SizedBox.shrink();
-                            }
-                            final user = (snapshot.data as FirebaseUser).toUserFromBloc();
-                            return GestureDetector(
-                              onTap: () async {
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => MultiRepositoryProvider(
-                                      providers: [
-                                        RepositoryProvider.value(value: RepositoryProvider.of<TweetRepository>(context)),
-                                        RepositoryProvider.value(value: RepositoryProvider.of<UserRepository>(context)),
-                                      ],
-                                      child: TweetDetailScreen(
-                                        tweet: tweet,
-                                        author: user,
+    return BlocListener<TweetBloc, TweetState>(
+      listener: (context, state) {
+        if (state is TweetDeleteSuccess) {
+          _fetchTweets();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        // AppBar supprimée, elle est maintenant gérée dans MainScreen
+        body: SafeArea(
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : error != null
+                  ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
+                  : RefreshIndicator(
+                      onRefresh: _fetchTweets,
+                      child: ListView.builder(
+                        itemCount: tweets.where((t) => !t.isComment).length,
+                        itemBuilder: (context, index) {
+                          final tweet = tweets.where((t) => !t.isComment).toList()[index];
+                          return FutureBuilder(
+                            future: userRepository.getUserById(tweet.userId),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 24.0),
+                                  child: Center(child: CircularProgressIndicator()),
+                                );
+                              }
+                              if (!snapshot.hasData || snapshot.data == null) {
+                                return const SizedBox.shrink();
+                              }
+                              final user = (snapshot.data as FirebaseUser).toUserFromBloc();
+                              return GestureDetector(
+                                onTap: () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => MultiRepositoryProvider(
+                                        providers: [
+                                          RepositoryProvider.value(value: RepositoryProvider.of<TweetRepository>(context)),
+                                          RepositoryProvider.value(value: RepositoryProvider.of<UserRepository>(context)),
+                                        ],
+                                        child: TweetDetailScreen(
+                                          tweet: tweet,
+                                          author: user,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                                _fetchTweets();
-                              },
-                              child: TweetItem(
-                                tweet: tweet,
-                                author: user,
-                                userId: userId,
-                                tweetBloc: tweetBloc,
-                              ),
-                            );
-                          },
-                        );
-                      },
+                                  );
+                                  _fetchTweets();
+                                },
+                                child: TweetItem(
+                                  tweet: tweet,
+                                  author: user,
+                                  userId: userId,
+                                  tweetBloc: tweetBloc,
+                                  onDeleteTweet: (tweetId) {
+                                    tweetBloc.add(DeleteTweet(tweetId: tweetId));
+                                  },
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _handleAddTweet,
-        backgroundColor: Colors.blueAccent,
-        child: const Icon(Icons.add, color: Colors.white, size: 32),
-        shape: const CircleBorder(),
-        elevation: 6,
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _handleAddTweet,
+          backgroundColor: Colors.blueAccent,
+          child: const Icon(Icons.add, color: Colors.white, size: 32),
+          shape: const CircleBorder(),
+          elevation: 6,
+        ),
       ),
     );
   }
@@ -205,7 +216,8 @@ class TweetItem extends StatefulWidget {
   final UserFromBloc author;
   final String? userId;
   final TweetBloc tweetBloc;
-  const TweetItem({super.key, required this.tweet, required this.author, required this.userId, required this.tweetBloc});
+  final Function(String)? onDeleteTweet;
+  const TweetItem({super.key, required this.tweet, required this.author, required this.userId, required this.tweetBloc, this.onDeleteTweet});
 
   @override
   State<TweetItem> createState() => _TweetItemState();
@@ -255,6 +267,8 @@ class _TweetItemState extends State<TweetItem> {
       author: widget.author,
       isLiked: isLiked,
       onLike: _handleLike,
+      currentUserId: widget.userId,
+      onDeleteTweet: widget.onDeleteTweet,
     );
   }
 } 

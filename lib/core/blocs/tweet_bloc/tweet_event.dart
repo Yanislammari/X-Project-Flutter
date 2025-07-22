@@ -29,4 +29,9 @@ class UnlikeTweet extends TweetEvent {
   final String userId;
   final String tweetId;
   UnlikeTweet({required this.userId, required this.tweetId});
+}
+
+class DeleteTweet extends TweetEvent {
+  final String tweetId;
+  DeleteTweet({required this.tweetId});
 } 

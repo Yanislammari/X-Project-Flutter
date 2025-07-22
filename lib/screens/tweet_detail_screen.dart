@@ -11,6 +11,7 @@ import '../widget/tweet_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/blocs/tweet_bloc/tweet_bloc.dart';
 import '../core/blocs/tweet_bloc/tweet_event.dart';
+import '../core/blocs/tweet_bloc/tweet_state.dart';
 
 class TweetDetailScreen extends StatefulWidget {
   final Tweet tweet;
@@ -159,7 +160,17 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocListener<TweetBloc, TweetState>(
+      listener: (context, state) {
+        if (state is TweetDeleteSuccess) {
+          if (state.deletedTweetId == widget.tweet.id) {
+            Navigator.of(context).pop();
+          } else {
+            _fetchComments();
+          }
+        }
+      },
+      child: Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -181,6 +192,10 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
                 author: widget.author,
                 isLiked: mainTweetIsLiked,
                 onLike: _handleMainTweetLike,
+                currentUserId: user?.uid,
+                onDeleteTweet: (tweetId) {
+                  tweetBloc.add(DeleteTweet(tweetId: tweetId));
+                },
               ),
             ),
             const Divider(color: Colors.grey, height: 0),
@@ -273,6 +288,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -343,6 +359,10 @@ class _CommentItemState extends State<CommentItem> {
         author: author!,
         isLiked: isLiked,
         onLike: _handleLike,
+        currentUserId: widget.userId,
+        onDeleteTweet: (tweetId) {
+          widget.tweetBloc.add(DeleteTweet(tweetId: tweetId));
+        },
       ),
     );
   }

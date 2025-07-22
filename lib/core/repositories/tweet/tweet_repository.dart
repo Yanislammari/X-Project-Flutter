@@ -13,4 +13,8 @@ class TweetRepository {
   Future<Tweet?> fetchTweetById(String id) async {
     return await tweetDataSource.fetchTweetById(id);
   }
+
+  Future<void> deleteTweet(String tweetId) async {
+    return await tweetDataSource.deleteTweet(tweetId);
+  }
 } 

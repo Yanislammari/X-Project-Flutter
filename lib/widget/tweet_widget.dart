@@ -7,6 +7,8 @@ class TweetWidget extends StatelessWidget {
   final UserFromBloc author;
   final bool isLiked;
   final VoidCallback onLike;
+  final String? currentUserId;
+  final Function(String)? onDeleteTweet;
 
   const TweetWidget({
     Key? key,
@@ -14,6 +16,8 @@ class TweetWidget extends StatelessWidget {
     required this.author,
     required this.isLiked,
     required this.onLike,
+    this.currentUserId,
+    this.onDeleteTweet,
   }) : super(key: key);
 
   @override
@@ -74,7 +78,50 @@ class TweetWidget extends StatelessWidget {
                   ],
                 ),
                 const Spacer(),
-                Icon(Icons.more_horiz, color: secondaryTextColor, size: 22),
+                if (currentUserId != null && currentUserId == tweet.userId)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_horiz, color: secondaryTextColor, size: 22),
+                    color: Colors.grey[900],
+                    itemBuilder: (context) => [
+                      PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red, size: 20),
+                            const SizedBox(width: 8),
+                            const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'delete' && onDeleteTweet != null) {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: Colors.grey[900],
+                            title: const Text('Supprimer le tweet', style: TextStyle(color: Colors.white)),
+                            content: const Text('Êtes-vous sûr de vouloir supprimer ce tweet ?', style: TextStyle(color: Colors.white70)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Annuler', style: TextStyle(color: Colors.grey)),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  onDeleteTweet!(tweet.id);
+                                },
+                                child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                  )
+                else
+                  Icon(Icons.more_horiz, color: secondaryTextColor, size: 22),
               ],
             ),
             const SizedBox(height: 12),

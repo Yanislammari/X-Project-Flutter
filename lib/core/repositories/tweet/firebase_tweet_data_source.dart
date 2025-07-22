@@ -36,4 +36,8 @@ class FirebaseTweetDataSource {
       'id': doc.id,
     });
   }
+
+  Future<void> deleteTweet(String tweetId) async {
+    await firestore.collection('tweets').doc(tweetId).delete();
+  }
 } 

@@ -21,6 +21,7 @@ class TweetBloc extends Bloc<TweetEvent, TweetState> {
     on<AddTweet>(_onAddTweet);
     on<LikeTweet>(_onLikeTweet);
     on<UnlikeTweet>(_onUnlikeTweet);
+    on<DeleteTweet>(_onDeleteTweet);
   }
 
   Future<void> _onFetchTweets(FetchTweets event, Emitter<TweetState> emit) async {
@@ -84,6 +85,15 @@ class TweetBloc extends Bloc<TweetEvent, TweetState> {
     try {
       await likeRepository.removeLike(userId: event.userId, tweetId: event.tweetId);
     } catch (e) {
+    }
+  }
+
+  Future<void> _onDeleteTweet(DeleteTweet event, Emitter<TweetState> emit) async {
+    try {
+      await tweetRepository.deleteTweet(event.tweetId);
+      emit(TweetDeleteSuccess(event.tweetId));
+    } catch (e) {
+      emit(TweetError('Erreur lors de la suppression du tweet : $e'));
     }
   }
 } 

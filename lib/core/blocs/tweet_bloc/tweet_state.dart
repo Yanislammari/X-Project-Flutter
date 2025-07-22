@@ -11,4 +11,9 @@ class TweetLoaded extends TweetState {
 class TweetError extends TweetState {
   final String message;
   TweetError(this.message);
+}
+
+class TweetDeleteSuccess extends TweetState {
+  final String deletedTweetId;
+  TweetDeleteSuccess(this.deletedTweetId);
 } 
