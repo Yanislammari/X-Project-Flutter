@@ -78,7 +78,7 @@ class _LoginEmailPasswdScreenState extends State<LoginEmailPasswdScreen> {
                 const SizedBox(height: 32),
                 // Titre et sous-titre
                 const Text(
-                  'Sign in to X',
+                  'Sign in',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 26,
