@@ -26,13 +26,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
   final TextEditingController _controller = TextEditingController();
   File? _imageFile;
   bool _isLoading = false;
-  List<Tweet> comments = [];
-  bool loadingComments = true;
-  String? error;
-  late final TweetBloc tweetBloc;
   final user = FirebaseAuth.instance.currentUser;
-  Map<String, bool> commentIsLiked = {};
-  Map<String, int> commentLikesCount = {};
   final likeRepository = LikeRepository();
   bool mainTweetIsLiked = false;
   int mainTweetLikesCount = 0;
@@ -40,49 +34,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
   @override
   void initState() {
     super.initState();
-    final tweetRepo = RepositoryProvider.of<TweetRepository>(context, listen: false);
-    tweetBloc = TweetBloc(tweetRepository: tweetRepo);
     _initMainTweetLike();
-    _fetchComments();
-  }
-
-  @override
-  void dispose() {
-    tweetBloc.close();
-    super.dispose();
-  }
-
-  Future<void> _fetchComments() async {
-    setState(() {
-      loadingComments = true;
-      error = null;
-    });
-    try {
-      final tweetRepo = RepositoryProvider.of<TweetRepository>(context, listen: false);
-      final allTweets = await tweetRepo.fetchTweets();
-      comments = allTweets.where((t) => t.isComment == true && t.replyToTweetId == widget.tweet.id).toList();
-      // Précharge les likes pour chaque commentaire
-      if (user != null) {
-        for (final comment in comments) {
-          final liked = await likeRepository.isLiked(userId: user!.uid, tweetId: comment.id);
-          commentIsLiked[comment.id] = liked;
-          commentLikesCount[comment.id] = comment.likes;
-        }
-      } else {
-        for (final comment in comments) {
-          commentIsLiked[comment.id] = false;
-          commentLikesCount[comment.id] = comment.likes;
-        }
-      }
-      setState(() {
-        loadingComments = false;
-      });
-    } catch (e) {
-      setState(() {
-        error = 'Erreur lors du chargement des commentaires';
-        loadingComments = false;
-      });
-    }
   }
 
   Future<void> _pickImage() async {
@@ -98,7 +50,8 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
     final content = _controller.text.trim();
     if (content.isEmpty || user == null) return;
     setState(() => _isLoading = true);
-    tweetBloc.add(
+    
+    context.read<TweetBloc>().add(
       AddTweet(
         userId: user!.uid,
         content: content,
@@ -107,13 +60,13 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
         replyToTweetId: widget.tweet.id,
       ),
     );
+    
     await Future.delayed(const Duration(milliseconds: 600));
     setState(() {
       _controller.clear();
       _imageFile = null;
       _isLoading = false;
     });
-    _fetchComments();
   }
 
   Future<void> _initMainTweetLike() async {
@@ -137,6 +90,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
       mainTweetIsLiked = !mainTweetIsLiked;
       mainTweetLikesCount += mainTweetIsLiked ? 1 : -1;
     });
+    final tweetBloc = context.read<TweetBloc>();
     if (mainTweetIsLiked) {
       tweetBloc.add(LikeTweet(userId: user!.uid, tweetId: widget.tweet.id));
     } else {
@@ -144,151 +98,401 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
     }
   }
 
-  void _handleLikeComment(Tweet comment) async {
-    if (user == null) return;
-    final isLiked = commentIsLiked[comment.id] ?? false;
-    setState(() {
-      commentIsLiked[comment.id] = !isLiked;
-      commentLikesCount[comment.id] = (commentLikesCount[comment.id] ?? comment.likes) + (isLiked ? -1 : 1);
-    });
-    if (isLiked) {
-      tweetBloc.add(UnlikeTweet(userId: user!.uid, tweetId: comment.id));
-    } else {
-      tweetBloc.add(LikeTweet(userId: user!.uid, tweetId: comment.id));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<TweetBloc, TweetState>(
       listener: (context, state) {
-        if (state is TweetDeleteSuccess) {
-          print('[DEBUG] TweetDeleteSuccess capturé dans TweetDetailScreen');
-          if (state.deletedTweetId == widget.tweet.id) {
+        if (state is TweetLoaded) {
+          // Vérifier si le tweet principal a été supprimé
+          final mainTweetExists = state.tweets.any((t) => t.id == widget.tweet.id);
+          if (!mainTweetExists) {
             Navigator.of(context).pop();
-          } else {
-            _fetchComments();
           }
         }
       },
       child: Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
         backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Tweet', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: TweetWidget(
-                tweet: widget.tweet.copyWith(likes: mainTweetLikesCount),
-                author: widget.author,
-                isLiked: mainTweetIsLiked,
-                onLike: _handleMainTweetLike,
-                currentUserId: user?.uid,
-                onDeleteTweet: (tweetId) {
-                  tweetBloc.add(DeleteTweet(tweetId: tweetId));
-                },
-              ),
+        appBar: AppBar(
+          backgroundColor: Colors.black.withOpacity(0.8),
+          elevation: 0,
+          leading: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(20),
             ),
-            const Divider(color: Colors.grey, height: 0),
-            if (loadingComments)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32.0),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (error != null)
-              Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
-            else if (comments.isEmpty)
-              const Center(child: Text('Aucun commentaire', style: TextStyle(color: Colors.grey)))
-            else
-              ...comments.map((comment) => CommentItem(
-                comment: comment,
-                tweetBloc: tweetBloc,
-                userId: user?.uid,
-              )),
-            const Divider(color: Colors.grey, height: 24),
-            // Champ de commentaire
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          title: const Text(
+            'Tweet',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          actions: [
             Container(
-              color: const Color(0xFF181C20),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          minLines: 1,
-                          maxLines: 5,
-                          style: const TextStyle(color: Colors.white, fontSize: 16),
-                          decoration: InputDecoration(
-                            hintText: "Tweete ta réponse...",
-                            hintStyle: TextStyle(color: Colors.grey[500]),
-                            border: InputBorder.none,
-                            filled: true,
-                            fillColor: Colors.grey[900],
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.image, color: Colors.blueAccent, size: 26),
-                        onPressed: _pickImage,
-                      ),
-                      _isLoading
-                          ? const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.send, color: Colors.blueAccent, size: 26),
-                              onPressed: _submitComment,
-                            ),
-                    ],
-                  ),
-                  if (_imageFile != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(_imageFile!, height: 100),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _imageFile = null),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Icon(Icons.close, color: Colors.white, size: 20),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.share_outlined, color: Color(0xFF1D9BF0), size: 20),
+                onPressed: () {
+                  // Action de partage
+                },
               ),
             ),
           ],
         ),
-      ),
+        body: GestureDetector(
+          onTap: () {
+            // Fermer le clavier quand on tape ailleurs
+            FocusScope.of(context).unfocus();
+          },
+          child: Column(
+            children: [
+              Expanded(
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    // Main Tweet
+                    SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Color(0xFF2F3336),
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                        child: TweetWidget(
+                          tweet: widget.tweet.copyWith(likes: mainTweetLikesCount),
+                          author: widget.author,
+                          isLiked: mainTweetIsLiked,
+                          onLike: _handleMainTweetLike,
+                          currentUserId: user?.uid,
+                          onDeleteTweet: (tweetId) {
+                            context.read<TweetBloc>().add(DeleteTweet(tweetId: tweetId));
+                          },
+                        ),
+                      ),
+                    ),
+                    // Comments Header and List
+                    BlocBuilder<TweetBloc, TweetState>(
+                      builder: (context, state) {
+                        if (state is TweetLoaded) {
+                          final comments = state.tweets.where((t) => t.isComment == true && t.replyToTweetId == widget.tweet.id).toList();
+                          
+                          return SliverMainAxisGroup(
+                            slivers: [
+                              // Comments Header
+                              SliverToBoxAdapter(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Color(0xFF2F3336),
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.chat_bubble_outline,
+                                        color: Color(0xFF1D9BF0),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Réponses (${comments.length})',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Comments List
+                              if (comments.isEmpty)
+                                SliverToBoxAdapter(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(64),
+                                    child: const Center(
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            Icons.chat_bubble_outline,
+                                            color: Color(0xFF71767B),
+                                            size: 64,
+                                          ),
+                                          SizedBox(height: 16),
+                                          Text(
+                                            'Aucune réponse',
+                                            style: TextStyle(
+                                              color: Color(0xFF71767B),
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            'Soyez le premier à répondre à ce Tweet',
+                                            style: TextStyle(
+                                              color: Color(0xFF71767B),
+                                              fontSize: 15,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      return CommentItem(
+                                        comment: comments[index],
+                                        userId: user?.uid,
+                                      );
+                                    },
+                                    childCount: comments.length,
+                                  ),
+                                ),
+                            ],
+                          );
+                        } else if (state is TweetLoading) {
+                          return SliverToBoxAdapter(
+                            child: Container(
+                              padding: const EdgeInsets.all(64),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF1D9BF0),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        } else if (state is TweetError) {
+                          return SliverToBoxAdapter(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    const Icon(
+                                      Icons.error_outline,
+                                      color: Color(0xFFF4212E),
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      state.message,
+                                      style: const TextStyle(color: Colors.white),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          return SliverToBoxAdapter(
+                            child: Container(
+                              padding: const EdgeInsets.all(64),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF1D9BF0),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    // Padding supplémentaire pour éviter que le dernier élément soit caché
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 100 : 16),
+                    ),
+                  ],
+                ),
+              ),
+              // Zone de saisie fixe en bas
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E1E1E),
+                  border: Border(
+                    top: BorderSide(
+                      color: Color(0xFF2F3336),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                constraints: const BoxConstraints(
+                                  minHeight: 40,
+                                  maxHeight: 100,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF16181C),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: const Color(0xFF2F3336),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: TextField(
+                                  controller: _controller,
+                                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                                  maxLines: null,
+                                  textCapitalization: TextCapitalization.sentences,
+                                  decoration: const InputDecoration(
+                                    hintText: "Tweete ta réponse...",
+                                    hintStyle: TextStyle(
+                                      color: Color(0xFF71767B),
+                                      fontSize: 16,
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF16181C),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF2F3336),
+                                  width: 1,
+                                ),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.image_outlined,
+                                  color: Color(0xFF1D9BF0),
+                                  size: 20,
+                                ),
+                                onPressed: _pickImage,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF1D9BF0), Color(0xFF0F5F8F)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF1D9BF0).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: _isLoading
+                                  ? Container(
+                                      width: 40,
+                                      height: 40,
+                                      padding: const EdgeInsets.all(8),
+                                      child: const CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : IconButton(
+                                      icon: const Icon(
+                                        Icons.send_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: _submitComment,
+                                    ),
+                            ),
+                          ],
+                        ),
+                        if (_imageFile != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF2F3336),
+                                width: 1,
+                              ),
+                            ),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    _imageFile!,
+                                    height: 120,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _imageFile = null),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.7),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -296,9 +500,8 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
 
 class CommentItem extends StatefulWidget {
   final Tweet comment;
-  final TweetBloc tweetBloc;
   final String? userId;
-  const CommentItem({super.key, required this.comment, required this.tweetBloc, required this.userId});
+  const CommentItem({super.key, required this.comment, required this.userId});
 
   @override
   State<CommentItem> createState() => _CommentItemState();
@@ -336,10 +539,11 @@ class _CommentItemState extends State<CommentItem> {
       isLiked = !isLiked;
       likesCount += isLiked ? 1 : -1;
     });
+    final tweetBloc = context.read<TweetBloc>();
     if (isLiked) {
-      widget.tweetBloc.add(LikeTweet(userId: widget.userId!, tweetId: widget.comment.id));
+      tweetBloc.add(LikeTweet(userId: widget.userId!, tweetId: widget.comment.id));
     } else {
-      widget.tweetBloc.add(UnlikeTweet(userId: widget.userId!, tweetId: widget.comment.id));
+      tweetBloc.add(UnlikeTweet(userId: widget.userId!, tweetId: widget.comment.id));
     }
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) setState(() => loading = false);
@@ -362,7 +566,7 @@ class _CommentItemState extends State<CommentItem> {
         onLike: _handleLike,
         currentUserId: widget.userId,
         onDeleteTweet: (tweetId) {
-          widget.tweetBloc.add(DeleteTweet(tweetId: tweetId));
+          context.read<TweetBloc>().add(DeleteTweet(tweetId: tweetId));
         },
       ),
     );

@@ -152,7 +152,7 @@ class _LoginState extends State<Login> {
                   const SizedBox(height: 32),
                   // Titre stylé
                   Text(
-                    'Welcome to X',
+                    'Welcome to Buzzio',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.95),
                       fontSize: 28,

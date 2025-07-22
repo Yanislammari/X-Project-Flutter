@@ -57,9 +57,9 @@ class _AddTweetScreenState extends State<AddTweetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF1A1A1A),
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('Nouveau Tweet', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -82,7 +82,7 @@ class _AddTweetScreenState extends State<AddTweetScreen> {
                       hintStyle: TextStyle(color: Colors.grey[500]),
                       border: InputBorder.none,
                       filled: true,
-                      fillColor: Colors.grey[900],
+                      fillColor: Colors.grey[800],
                       contentPadding: const EdgeInsets.all(16),
                     ),
                   ),

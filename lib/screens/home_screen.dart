@@ -32,7 +32,12 @@ class HomeScreen extends StatelessWidget {
           create: (_) => UserRepository(userDataSource: FirebaseUserDataSource()),
         ),
       ],
-      child: const _TweetListView(),
+      child: BlocProvider(
+        create: (context) => TweetBloc(
+          tweetRepository: RepositoryProvider.of<TweetRepository>(context),
+        )..add(FetchTweets()),
+        child: const _TweetListView(),
+      ),
     );
   }
 }
@@ -48,24 +53,17 @@ class _TweetListViewState extends State<_TweetListView> {
   final likeRepository = LikeRepository();
   final user = FirebaseAuth.instance.currentUser;
   late String? userId;
-  late final TweetBloc tweetBloc;
-  List<Tweet> tweets = [];
-  bool isLoading = true;
-  String? error;
 
   @override
   void initState() {
     super.initState();
     userId = user?.uid;
-    final tweetRepo = RepositoryProvider.of<TweetRepository>(context, listen: false);
-    tweetBloc = TweetBloc(tweetRepository: tweetRepo);
-    _fetchTweets();
     shouldRefetchTweets.addListener(_onShouldRefetchTweets);
   }
 
   void _onShouldRefetchTweets() {
     if (shouldRefetchTweets.value) {
-      _fetchTweets();
+      context.read<TweetBloc>().add(FetchTweets());
       shouldRefetchTweets.value = false;
     }
   }
@@ -73,28 +71,7 @@ class _TweetListViewState extends State<_TweetListView> {
   @override
   void dispose() {
     shouldRefetchTweets.removeListener(_onShouldRefetchTweets);
-    tweetBloc.close();
     super.dispose();
-  }
-
-  Future<void> _fetchTweets() async {
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
-    try {
-      final tweetRepo = RepositoryProvider.of<TweetRepository>(context, listen: false);
-      final fetchedTweets = await tweetRepo.fetchTweets();
-      tweets = fetchedTweets;
-      setState(() {
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        error = 'Erreur lors du chargement des tweets';
-        isLoading = false;
-      });
-    }
   }
 
   void _handleAddTweet() async {
@@ -114,8 +91,8 @@ class _TweetListViewState extends State<_TweetListView> {
         ),
       ),
     );
-    // Après ajout, on refetch la liste
-    _fetchTweets();
+    // Après ajout, on refetch la liste via le bloc
+    context.read<TweetBloc>().add(FetchTweets());
   }
 
   void _openProfileScreen(BuildContext context, String userId) async {
@@ -125,41 +102,163 @@ class _TweetListViewState extends State<_TweetListView> {
       ),
     );
     if (result == 'refresh') {
-      _fetchTweets();
+      context.read<TweetBloc>().add(FetchTweets());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final userRepository = RepositoryProvider.of<UserRepository>(context);
-    return BlocListener<TweetBloc, TweetState>(
-      listener: (context, state) {
-        if (state is TweetDeleteSuccess) {
-          print('[DEBUG] TweetDeleteSuccess capturé dans HomeScreen');
-          _fetchTweets();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        // AppBar supprimée, elle est maintenant gérée dans MainScreen
-        body: SafeArea(
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : error != null
-                  ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
-                  : RefreshIndicator(
-                      onRefresh: _fetchTweets,
-                      child: ListView.builder(
-                        itemCount: tweets.where((t) => !t.isComment).length,
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: BlocBuilder<TweetBloc, TweetState>(
+          builder: (context, state) {
+            if (state is TweetLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF1D9BF0),
+                  strokeWidth: 2,
+                ),
+              );
+            } else if (state is TweetError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Color(0xFFF4212E),
+                      size: 64,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.read<TweetBloc>().add(FetchTweets()),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1D9BF0),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        'Réessayer',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else if (state is TweetLoaded) {
+              final tweets = state.tweets.where((t) => !t.isComment).toList();
+              
+              return RefreshIndicator(
+                color: const Color(0xFF1D9BF0),
+                backgroundColor: const Color(0xFF16181C),
+                onRefresh: () async {
+                  context.read<TweetBloc>().add(FetchTweets());
+                },
+                child: tweets.isEmpty
+                    ? ListView(
+                        children: [
+                          SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                          const Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.post_add_outlined,
+                                  color: Color(0xFF71767B),
+                                  size: 64,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Aucun Tweet pour le moment',
+                                  style: TextStyle(
+                                    color: Color(0xFF71767B),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Soyez le premier à partager quelque chose !',
+                                  style: TextStyle(
+                                    color: Color(0xFF71767B),
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: tweets.length,
                         itemBuilder: (context, index) {
-                          final tweet = tweets.where((t) => !t.isComment).toList()[index];
+                          final tweet = tweets[index];
                           return FutureBuilder(
                             future: userRepository.getUserById(tweet.userId),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 24.0),
-                                  child: Center(child: CircularProgressIndicator()),
+                                return Container(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF16181C),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              width: 120,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF16181C),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Container(
+                                              width: double.infinity,
+                                              height: 14,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF16181C),
+                                                borderRadius: BorderRadius.circular(7),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Container(
+                                              width: 200,
+                                              height: 14,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF16181C),
+                                                borderRadius: BorderRadius.circular(7),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 );
                               }
                               if (!snapshot.hasData || snapshot.data == null) {
@@ -175,22 +274,27 @@ class _TweetListViewState extends State<_TweetListView> {
                                           RepositoryProvider.value(value: RepositoryProvider.of<TweetRepository>(context)),
                                           RepositoryProvider.value(value: RepositoryProvider.of<UserRepository>(context)),
                                         ],
-                                        child: TweetDetailScreen(
-                                          tweet: tweet,
-                                          author: user,
+                                        child: BlocProvider(
+                                          create: (context) => TweetBloc(
+                                            tweetRepository: RepositoryProvider.of<TweetRepository>(context),
+                                          )..add(FetchTweets()),
+                                          child: TweetDetailScreen(
+                                            tweet: tweet,
+                                            author: user,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   );
-                                  _fetchTweets();
+                                  // Rafraîchir après retour du détail
+                                  context.read<TweetBloc>().add(FetchTweets());
                                 },
                                 child: TweetItem(
                                   tweet: tweet,
                                   author: user,
                                   userId: userId,
-                                  tweetBloc: tweetBloc,
                                   onDeleteTweet: (tweetId) {
-                                    tweetBloc.add(DeleteTweet(tweetId: tweetId));
+                                    context.read<TweetBloc>().add(DeleteTweet(tweetId: tweetId));
                                   },
                                 ),
                               );
@@ -198,14 +302,43 @@ class _TweetListViewState extends State<_TweetListView> {
                           );
                         },
                       ),
-                    ),
+              );
+            } else {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF1D9BF0),
+                  strokeWidth: 2,
+                ),
+              );
+            }
+          },
         ),
-        floatingActionButton: FloatingActionButton(
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1D9BF0), Color(0xFF0F5F8F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1D9BF0).withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
           onPressed: _handleAddTweet,
-          backgroundColor: Colors.blueAccent,
-          child: const Icon(Icons.add, color: Colors.white, size: 32),
-          shape: const CircleBorder(),
-          elevation: 6,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+            size: 28,
+          ),
         ),
       ),
     );
@@ -216,9 +349,8 @@ class TweetItem extends StatefulWidget {
   final Tweet tweet;
   final UserFromBloc author;
   final String? userId;
-  final TweetBloc tweetBloc;
   final Function(String)? onDeleteTweet;
-  const TweetItem({super.key, required this.tweet, required this.author, required this.userId, required this.tweetBloc, this.onDeleteTweet});
+  const TweetItem({super.key, required this.tweet, required this.author, required this.userId, this.onDeleteTweet});
 
   @override
   State<TweetItem> createState() => _TweetItemState();
@@ -252,10 +384,11 @@ class _TweetItemState extends State<TweetItem> {
       isLiked = !isLiked;
       likesCount += isLiked ? 1 : -1;
     });
+    final tweetBloc = context.read<TweetBloc>();
     if (isLiked) {
-      widget.tweetBloc.add(LikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
+      tweetBloc.add(LikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
     } else {
-      widget.tweetBloc.add(UnlikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
+      tweetBloc.add(UnlikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
     }
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) setState(() => loading = false);

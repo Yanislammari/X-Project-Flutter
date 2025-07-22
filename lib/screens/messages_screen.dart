@@ -25,7 +25,27 @@ class MessagesScreen extends StatelessWidget {
     if (user == null) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: Text('Utilisateur non connecté', style: TextStyle(color: Colors.white))),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.person_off_outlined,
+                color: Color(0xFF71767B),
+                size: 64,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Utilisateur non connecté',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
     return MultiBlocProvider(
@@ -40,94 +60,417 @@ class MessagesScreen extends StatelessWidget {
       ],
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: BlocBuilder<ConversationBloc, ConversationState>(
-          builder: (context, state) {
-            if (state is ConversationInitial) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is ConversationLoaded) {
-              if (state.conversations.isEmpty) {
-                return const Center(child: Text('Aucune conversation', style: TextStyle(color: Colors.white70)));
-              }
-              return ListView.builder(
-                itemCount: state.conversations.length,
-                itemBuilder: (context, index) {
-                  final conv = state.conversations[index];
-                  final otherId = conv.participants.firstWhere((id) => id != user.uid);
-                  return FutureBuilder<FirebaseUser?>(
-                    future: UserRepository(userDataSource: FirebaseUserDataSource()).getUserById(otherId),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const ListTile(title: Text('Chargement...', style: TextStyle(color: Colors.white)));
-                      }
-                      final otherUser = snapshot.data!;
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundImage: (otherUser.imagePath != null && otherUser.imagePath!.isNotEmpty)
-                              ? NetworkImage(otherUser.imagePath!)
-                              : null,
-                          backgroundColor: Colors.grey[900],
-                          child: (otherUser.imagePath == null || otherUser.imagePath!.isEmpty)
-                              ? const Icon(Icons.person, color: Colors.white)
-                              : null,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Color(0xFF2F3336),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D9BF0).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF1D9BF0).withOpacity(0.3),
+                          width: 1,
                         ),
-                        title: Text(otherUser.pseudo ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          conv.lastMessage?.content ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white70),
+                      ),
+                      child: const Icon(
+                        Icons.mail_outlined,
+                        color: Color(0xFF1D9BF0),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Messages',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D9BF0).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF1D9BF0).withOpacity(0.3),
+                          width: 1,
                         ),
-                        trailing: conv.lastMessage != null
-                            ? Text(
-                                _formatTime(conv.lastMessage!.sentAt),
-                                style: const TextStyle(color: Colors.white54, fontSize: 12),
-                              )
-                            : null,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ConversationScreen(
-                                conversationId: conv.id,
-                                otherUser: otherUser,
+                      ),
+                      child: const Icon(
+                        Icons.settings_outlined,
+                        color: Color(0xFF1D9BF0),
+                        size: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Expanded(
+                child: BlocBuilder<ConversationBloc, ConversationState>(
+                  builder: (context, state) {
+                    if (state is ConversationInitial) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF1D9BF0),
+                          strokeWidth: 2,
+                        ),
+                      );
+                    } else if (state is ConversationLoaded) {
+                      if (state.conversations.isEmpty) {
+                        return const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                color: Color(0xFF71767B),
+                                size: 64,
                               ),
-                            ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Aucune conversation',
+                                style: TextStyle(
+                                  color: Color(0xFF71767B),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Commencez une conversation avec vos amis',
+                                style: TextStyle(
+                                  color: Color(0xFF71767B),
+                                  fontSize: 15,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: state.conversations.length,
+                        itemBuilder: (context, index) {
+                          final conv = state.conversations[index];
+                          final otherId = conv.participants.firstWhere((id) => id != user.uid);
+                          return FutureBuilder<FirebaseUser?>(
+                            future: UserRepository(userDataSource: FirebaseUserDataSource()).getUserById(otherId),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return Container(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF16181C),
+                                          borderRadius: BorderRadius.circular(24),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              width: 120,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF16181C),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Container(
+                                              width: 200,
+                                              height: 14,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF16181C),
+                                                borderRadius: BorderRadius.circular(7),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              final otherUser = snapshot.data!;
+                              return ConversationItem(
+                                conversation: conv,
+                                otherUser: otherUser,
+                                currentUserId: user.uid,
+                              );
+                            },
                           );
                         },
                       );
-                    },
-                  );
-                },
-              );
-            } else if (state is ConversationError) {
-              return Center(child: Text(state.message, style: const TextStyle(color: Colors.red)));
-            }
-            return const SizedBox.shrink();
-          },
+                    } else if (state is ConversationError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Color(0xFFF4212E),
+                              size: 64,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              state.message,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<ConversationBloc>().add(
+                                  ListenConversations(user.uid),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1D9BF0),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              child: const Text(
+                                'Réessayer',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
-        floatingActionButton: _StartConversationButton(currentUserId: user.uid),
+        floatingActionButton: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1D9BF0), Color(0xFF0F5F8F)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1D9BF0).withOpacity(0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: FloatingActionButton(
+            onPressed: () => _showStartConversationModal(context, user.uid),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: const Icon(
+              Icons.edit,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  void _showStartConversationModal(BuildContext context, String currentUserId) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _StartConversationModal(currentUserId: currentUserId),
     );
   }
 
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
-    if (now.difference(dateTime).inDays == 0) {
-      return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'maintenant';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}j';
     } else {
       return "${dateTime.day}/${dateTime.month}";
     }
   }
 }
 
-class _StartConversationButton extends StatefulWidget {
+class ConversationItem extends StatelessWidget {
+  final Conversation conversation;
+  final FirebaseUser otherUser;
   final String currentUserId;
-  const _StartConversationButton({required this.currentUserId});
+
+  const ConversationItem({
+    super.key,
+    required this.conversation,
+    required this.otherUser,
+    required this.currentUserId,
+  });
 
   @override
-  State<_StartConversationButton> createState() => _StartConversationButtonState();
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ConversationScreen(
+                conversationId: conversation.id,
+                otherUser: otherUser,
+              ),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Color(0xFF2F3336),
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Avatar
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1D9BF0), Color(0xFF0F5F8F)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: CircleAvatar(
+                  backgroundImage: (otherUser.imagePath != null && otherUser.imagePath!.isNotEmpty)
+                      ? NetworkImage(otherUser.imagePath!)
+                      : null,
+                  radius: 22,
+                  backgroundColor: const Color(0xFF536471),
+                  child: (otherUser.imagePath == null || otherUser.imagePath!.isEmpty)
+                      ? const Icon(Icons.person, size: 24, color: Colors.white)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            otherUser.pseudo ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        if (conversation.lastMessage != null) ...[
+                          Text(
+                            _formatTime(conversation.lastMessage!.sentAt),
+                            style: const TextStyle(
+                              color: Color(0xFF71767B),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      conversation.lastMessage?.content ?? 'Nouvelle conversation',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF71767B),
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'maintenant';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}j';
+    } else {
+      return "${dateTime.day}/${dateTime.month}";
+    }
+  }
 }
 
-class _StartConversationButtonState extends State<_StartConversationButton> {
+class _StartConversationModal extends StatefulWidget {
+  final String currentUserId;
+  const _StartConversationModal({required this.currentUserId});
+
+  @override
+  State<_StartConversationModal> createState() => _StartConversationModalState();
+}
+
+class _StartConversationModalState extends State<_StartConversationModal> {
   List<FirebaseUser> relatedUsers = [];
   bool isLoading = false;
 
@@ -160,68 +503,202 @@ class _StartConversationButtonState extends State<_StartConversationButton> {
 
   @override
   Widget build(BuildContext context) {
-    return FloatingActionButton(
-      backgroundColor: Colors.blueAccent,
-      child: const Icon(Icons.message, color: Colors.white),
-      onPressed: () async {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.grey[900],
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFF71767B),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-          builder: (context) {
-            return Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Choisir une conversation',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  if (isLoading)
-                    const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (relatedUsers.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: Text('Vous n\'avez aucune relation établie', style: TextStyle(color: Colors.white70))),
-                    )
-                  else
-                    ...relatedUsers.map((u) => ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: (u.imagePath != null && u.imagePath!.isNotEmpty)
-                            ? NetworkImage(u.imagePath!)
-                            : null,
-                        backgroundColor: Colors.grey[900],
-                        child: (u.imagePath == null || u.imagePath!.isEmpty)
-                            ? const Icon(Icons.person, color: Colors.white)
-                            : null,
-                      ),
-                      title: Text(u.pseudo ?? '', style: const TextStyle(color: Colors.white)),
-                      onTap: () async {
-                        final convId = await _getOrCreateConversation(widget.currentUserId, u.uid!);
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ConversationScreen(
-                              conversationId: convId,
-                              otherUser: u,
-                            ),
-                          ),
-                        );
-                      },
-                    )).toList(),
-                ],
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: Color(0xFF2F3336),
+                  width: 0.5,
+                ),
               ),
-            );
-          },
-        );
-      },
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.edit,
+                  color: Color(0xFF1D9BF0),
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Nouvelle conversation',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(
+                    Icons.close,
+                    color: Color(0xFF71767B),
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Expanded(
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF1D9BF0),
+                      strokeWidth: 2,
+                    ),
+                  )
+                : relatedUsers.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              color: Color(0xFF71767B),
+                              size: 64,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Aucune relation établie',
+                              style: TextStyle(
+                                color: Color(0xFF71767B),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Établissez des relations pour commencer des conversations',
+                              style: TextStyle(
+                                color: Color(0xFF71767B),
+                                fontSize: 15,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: relatedUsers.length,
+                        itemBuilder: (context, index) {
+                          final user = relatedUsers[index];
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () async {
+                                final convId = await _getOrCreateConversation(widget.currentUserId, user.uid!);
+                                Navigator.of(context).pop();
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ConversationScreen(
+                                      conversationId: convId,
+                                      otherUser: user,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(22),
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF1D9BF0), Color(0xFF0F5F8F)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                      ),
+                                      child: CircleAvatar(
+                                        backgroundImage: (user.imagePath != null && user.imagePath!.isNotEmpty)
+                                            ? NetworkImage(user.imagePath!)
+                                            : null,
+                                        radius: 20,
+                                        backgroundColor: const Color(0xFF536471),
+                                        child: (user.imagePath == null || user.imagePath!.isEmpty)
+                                            ? const Icon(Icons.person, size: 20, color: Colors.white)
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            user.pseudo ?? '',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          if (user.bio != null && user.bio!.isNotEmpty) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              user.bio!,
+                                              style: const TextStyle(
+                                                color: Color(0xFF71767B),
+                                                fontSize: 14,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1D9BF0).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: const Color(0xFF1D9BF0).withOpacity(0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.chat_bubble_outline,
+                                        color: Color(0xFF1D9BF0),
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
   }
 

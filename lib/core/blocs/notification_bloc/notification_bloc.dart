@@ -8,31 +8,38 @@ import 'dart:async';
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   final NotificationRepository notificationRepository;
   StreamSubscription<List<AppNotification>>? _subscription;
+  
   NotificationBloc({required this.notificationRepository}) : super(NotificationInitial()) {
     on<ListenNotifications>(_onListenNotifications);
     on<AddNotificationEvent>(_onAddNotification);
-    on<_NotificationsUpdated>((event, emit) {
-      emit(NotificationLoaded(event.notifications));
-      if (event.notifications.isNotEmpty) {
-        add(NotificationReceived(event.notifications.first));
-      }
-    });
-    on<NotificationReceived>((event, emit) {
-    });
+    on<_NotificationsUpdated>(_onNotificationsUpdated);
   }
 
   void _onListenNotifications(ListenNotifications event, Emitter<NotificationState> emit) {
+    // Annuler l'ancienne souscription s'il y en a une
     _subscription?.cancel();
-    _subscription = notificationRepository.notificationsStream(event.toUserId).listen((notifications) {
-      add(_NotificationsUpdated(notifications));
-    });
+    
+    // Créer une nouvelle souscription
+    _subscription = notificationRepository.notificationsStream(event.toUserId).listen(
+      (notifications) {
+        add(_NotificationsUpdated(notifications));
+      },
+      onError: (error) {
+        emit(NotificationError('Erreur lors de l\'écoute des notifications : $error'));
+      },
+    );
+  }
+
+  void _onNotificationsUpdated(_NotificationsUpdated event, Emitter<NotificationState> emit) {
+    emit(NotificationLoaded(event.notifications));
   }
 
   Future<void> _onAddNotification(AddNotificationEvent event, Emitter<NotificationState> emit) async {
     try {
       await notificationRepository.addNotification(event.notification);
+      // Pas besoin d'émettre un état spécifique, le stream se chargera de la mise à jour
     } catch (e) {
-      emit(NotificationError(e.toString()));
+      emit(NotificationError('Erreur lors de l\'ajout de la notification : $e'));
     }
   }
 
@@ -43,12 +50,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 }
 
+// Événement privé pour les mises à jour du stream
 class _NotificationsUpdated extends NotificationEvent {
   final List<AppNotification> notifications;
   _NotificationsUpdated(this.notifications);
-}
-
-class NotificationReceived extends NotificationEvent {
-  final AppNotification notification;
-  NotificationReceived(this.notification);
 } 

@@ -9,12 +9,11 @@ import 'dart:io';
 import '../../repositories/tweet/like_repository.dart';
 import '../../models/notification.dart';
 import '../../repositories/notification/notification_repository.dart';
-import '../../repositories/user_data/user_repository.dart';
-import '../../repositories/user_data/firebase_user_data_source.dart';
 
 class TweetBloc extends Bloc<TweetEvent, TweetState> {
   final TweetRepository tweetRepository;
-  final LikeRepository likeRepository = LikeRepository();
+  final LikeRepository _likeRepository = LikeRepository();
+  final NotificationRepository _notificationRepository = NotificationRepository();
 
   TweetBloc({required this.tweetRepository}) : super(TweetInitial()) {
     on<FetchTweets>(_onFetchTweets);
@@ -30,30 +29,26 @@ class TweetBloc extends Bloc<TweetEvent, TweetState> {
       final tweets = await tweetRepository.fetchTweets();
       emit(TweetLoaded(tweets));
     } catch (e) {
-      emit(TweetError('Erreur lors du chargement des tweets'));
+      emit(TweetError('Erreur lors du chargement des tweets : $e'));
     }
   }
 
   Future<void> _onAddTweet(AddTweet event, Emitter<TweetState> emit) async {
     try {
       String? imageUrl;
+      
       if (event.imageFile != null) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('tweet_images')
-            .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-        await ref.putFile(event.imageFile!);
-        imageUrl = await ref.getDownloadURL();
+        imageUrl = await _uploadImage(event.imageFile!);
       }
-      await FirebaseFirestore.instance.collection('tweets').add({
-        'userId': event.userId,
-        'content': event.content,
-        'photo': imageUrl,
-        'likes': 0,
-        'created_at': FieldValue.serverTimestamp(),
-        'isComment': event.isComment,
-        'replyToTweetId': event.replyToTweetId,
-      });
+      
+      await _createTweetDocument(
+        userId: event.userId,
+        content: event.content,
+        imageUrl: imageUrl,
+        isComment: event.isComment,
+        replyToTweetId: event.replyToTweetId,
+      );
+      
       add(FetchTweets());
     } catch (e) {
       emit(TweetError('Erreur lors de l\'ajout du tweet : $e'));
@@ -62,38 +57,79 @@ class TweetBloc extends Bloc<TweetEvent, TweetState> {
 
   Future<void> _onLikeTweet(LikeTweet event, Emitter<TweetState> emit) async {
     try {
-      await likeRepository.addLike(userId: event.userId, tweetId: event.tweetId);
-      final tweet = await tweetRepository.fetchTweetById(event.tweetId);
-      if (tweet != null && tweet.userId != event.userId) {
-        final notif = AppNotification(
-          id: '',
-          type: NotificationType.LikeReceived,
-          likeId: tweet.id,
-          askingRelationId: null,
-          userId: event.userId,
-          toUserId: tweet.userId,
-          timestamp: DateTime.now(),
-        );
-        await NotificationRepository().addNotification(notif);
-        print('[DEBUG][NOTIF] Notification LikeReceived créée pour ${tweet.userId}');
-      }
+      await _likeRepository.addLike(userId: event.userId, tweetId: event.tweetId);
+      await _createLikeNotification(event.userId, event.tweetId);
     } catch (e) {
+      print('Erreur lors du like : $e');
     }
   }
 
   Future<void> _onUnlikeTweet(UnlikeTweet event, Emitter<TweetState> emit) async {
     try {
-      await likeRepository.removeLike(userId: event.userId, tweetId: event.tweetId);
+      await _likeRepository.removeLike(userId: event.userId, tweetId: event.tweetId);
     } catch (e) {
+      print('Erreur lors du unlike : $e');
     }
   }
 
   Future<void> _onDeleteTweet(DeleteTweet event, Emitter<TweetState> emit) async {
     try {
       await tweetRepository.deleteTweet(event.tweetId);
-      emit(TweetDeleteSuccess(event.tweetId));
+      
+      final tweets = await tweetRepository.fetchTweets();
+      emit(TweetLoaded(tweets));
     } catch (e) {
       emit(TweetError('Erreur lors de la suppression du tweet : $e'));
+    }
+  }
+
+  Future<String> _uploadImage(File imageFile) async {
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('tweet_images')
+        .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+    
+    await ref.putFile(imageFile);
+    return await ref.getDownloadURL();
+  }
+
+  Future<void> _createTweetDocument({
+    required String userId,
+    required String content,
+    String? imageUrl,
+    bool isComment = false,
+    String? replyToTweetId,
+  }) async {
+    await FirebaseFirestore.instance.collection('tweets').add({
+      'userId': userId,
+      'content': content,
+      'photo': imageUrl,
+      'likes': 0,
+      'created_at': FieldValue.serverTimestamp(),
+      'isComment': isComment,
+      'replyToTweetId': replyToTweetId,
+    });
+  }
+
+  Future<void> _createLikeNotification(String userId, String tweetId) async {
+    try {
+      final tweet = await tweetRepository.fetchTweetById(tweetId);
+      
+      if (tweet != null && tweet.userId != userId) {
+        final notif = AppNotification(
+          id: '',
+          type: NotificationType.LikeReceived,
+          likeId: tweet.id,
+          askingRelationId: null,
+          userId: userId,
+          toUserId: tweet.userId,
+          timestamp: DateTime.now(),
+        );
+        
+        await _notificationRepository.addNotification(notif);
+      }
+    } catch (e) {
+      print('Erreur lors de la création de la notification : $e');
     }
   }
 } 

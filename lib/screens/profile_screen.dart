@@ -31,19 +31,16 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   FirebaseUser? firebaseUser;
   UserFromBloc? user;
-  List<Tweet> userTweets = [];
-  bool isLoading = true;
-  String? error;
+  bool isLoadingUser = true;
+  String? userError;
   bool get isCurrentUser => FirebaseAuth.instance.currentUser?.uid == widget.userId;
-  late final TweetBloc tweetBloc;
   late final RelationBloc relationBloc;
 
   @override
   void initState() {
     super.initState();
-    tweetBloc = TweetBloc(tweetRepository: RepositoryProvider.of<TweetRepository>(context, listen: false));
     relationBloc = RelationBloc(relationRepository: RelationRepository());
-    _fetchProfile();
+    _fetchUserProfile();
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (!isCurrentUser && currentUserId != null) {
       relationBloc.add(CheckFullRelationStatus(currentUserId: currentUserId, profileUserId: widget.userId));
@@ -53,30 +50,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     widget.onPopRefetch?.call();
-    tweetBloc.close();
     relationBloc.close();
     super.dispose();
   }
 
-  Future<void> _fetchProfile() async {
+  Future<void> _fetchUserProfile() async {
     setState(() {
-      isLoading = true;
-      error = null;
+      isLoadingUser = true;
+      userError = null;
     });
     try {
       final userRepo = RepositoryProvider.of<UserRepository>(context, listen: false);
-      final tweetRepo = RepositoryProvider.of<TweetRepository>(context, listen: false);
       firebaseUser = await userRepo.getUserById(widget.userId);
       user = firebaseUser?.toUserFromBloc();
-      final allTweets = await tweetRepo.fetchTweets();
-      userTweets = allTweets.where((t) => t.userId == widget.userId && t.isComment == false).toList();
       setState(() {
-        isLoading = false;
+        isLoadingUser = false;
       });
     } catch (e) {
       setState(() {
-        error = 'Erreur lors du chargement du profil';
-        isLoading = false;
+        userError = 'Erreur lors du chargement du profil';
+        isLoadingUser = false;
       });
     }
   }
@@ -89,238 +82,491 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).pop('refresh');
         return false;
       },
-      child: BlocProvider.value(
-        value: relationBloc,
-        child: BlocListener<TweetBloc, TweetState>(
-          listener: (context, state) {
-            if (state is TweetDeleteSuccess) {
-              print('[DEBUG] TweetDeleteSuccess capturé dans ProfileScreen');
-              _fetchProfile();
-            }
-          },
-          child: Scaffold(
-            backgroundColor: Colors.black,
-            appBar: AppBar(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              title: const Text('Profil', style: TextStyle(fontWeight: FontWeight.bold)),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  Navigator.of(context).pop('refresh');
-                },
-              ),
-              actions: [
-                            if (isCurrentUser)
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const edit_profile.ProfileScreen(),
-                    ),
-                  );
-                },
-              ),
-                if (!isCurrentUser)
-                  BlocConsumer<RelationBloc, RelationState>(
-                    listener: (context, state) {
-                      if (state is RelationActionSuccess) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Action réalisée !', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
-                        );
-                        final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-                        if (currentUserId != null) {
-                          relationBloc.add(CheckFullRelationStatus(currentUserId: currentUserId, profileUserId: widget.userId));
-                        }
-                      } else if (state is RelationActionError) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(state.message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
-                        );
-                      }
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: relationBloc),
+          BlocProvider(
+            create: (context) => TweetBloc(
+              tweetRepository: RepositoryProvider.of<TweetRepository>(context),
+            )..add(FetchTweets()),
+          ),
+        ],
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                backgroundColor: Colors.black.withOpacity(0.8),
+                pinned: true,
+                expandedHeight: 280,
+                leading: Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () {
+                      Navigator.of(context).pop('refresh');
                     },
-                    builder: (context, state) {
-                      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-                      if (state is RelationStatusState) {
-                        // DEBUG
-                        print('[DEBUG] isRelated:  [33m [1m [4m [7m${state.isRelated} [0m, hasSentRequest: ${state.hasSentRequest}, hasReceivedRequest: ${state.hasReceivedRequest}, loading: ${state.loading}');
-                        if (state.loading) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 2)),
+                  ),
+                ),
+                actions: [
+                  if (isCurrentUser)
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.edit, color: Color(0xFF1D9BF0)),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const edit_profile.ProfileScreen(),
+                            ),
                           );
-                        }
-                        if (state.isRelated) {
-                          return IconButton(
-                            icon: const Icon(Icons.person_remove, color: Colors.redAccent),
-                            tooltip: 'Supprimer la relation',
-                            onPressed: () {
-                              if (currentUserId != null) {
-                                relationBloc.add(DeleteRelation(userA: currentUserId, userB: widget.userId));
-                              }
-                            },
-                          );
-                        }
-                        if (state.hasReceivedRequest && !state.isRelated) {
-                          return Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.check_circle, color: Colors.green),
-                                tooltip: 'Accepter la demande',
-                                onPressed: () {
-                                  if (currentUserId != null) {
-                                    relationBloc.add(AcceptRelationRequest(fromUserId: widget.userId, toUserId: currentUserId));
-                                  }
-                                },
+                        },
+                      ),
+                    ),
+                  if (!isCurrentUser)
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      child: BlocConsumer<RelationBloc, RelationState>(
+                        listener: (context, state) {
+                          if (state is RelationActionSuccess) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  'Action réalisée !',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                backgroundColor: const Color(0xFF00BA7C),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.cancel, color: Colors.redAccent),
-                                tooltip: 'Refuser la demande',
-                                onPressed: () {
-                                  if (currentUserId != null) {
-                                    relationBloc.add(RefuseRelationRequest(fromUserId: widget.userId, toUserId: currentUserId));
-                                  }
-                                },
-                              ),
-                            ],
-                          );
-                        }
-                        if (state.hasSentRequest) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Icon(Icons.hourglass_top, color: Colors.orange, size: 28),
-                          );
-                        }
-                        // Sinon, bouton d'envoi de demande
-                        return IconButton(
-                          icon: const Icon(Icons.person_add_alt_1, color: Colors.blueAccent),
-                          tooltip: 'Envoyer une demande de relation',
-                          onPressed: () {
+                            );
+                            final currentUserId = FirebaseAuth.instance.currentUser?.uid;
                             if (currentUserId != null) {
-                              relationBloc.add(
-                                SendRelationRequest(
-                                  AskingRelation(fromUserId: currentUserId, toUserId: widget.userId),
+                              relationBloc.add(CheckFullRelationStatus(currentUserId: currentUserId, profileUserId: widget.userId));
+                            }
+                          } else if (state is RelationActionError) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  state.message,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                backgroundColor: const Color(0xFFF4212E),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        builder: (context, state) {
+                          final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                          if (state is RelationStatusState) {
+                            if (state.loading) {
+                              return Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF1D9BF0),
+                                  ),
                                 ),
                               );
                             }
-                          },
-                        );
-                      }
-                      // Fallback loading
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 2)),
-                      );
-                    },
-                  ),
-              ],
-            ),
-            body: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : error != null
-                    ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
-                    : RefreshIndicator(
-                        onRefresh: _fetchProfile,
-                        child: ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                          children: [
-                            const SizedBox(height: 24),
-                            // Photo de profil centrée
-                            Center(
-                              child: CircleAvatar(
-                                radius: 54,
-                                backgroundImage: (user?.imageUrl != null && user!.imageUrl!.isNotEmpty)
-                                    ? NetworkImage(user!.imageUrl!)
-                                    : null,
-                                backgroundColor: Colors.grey[900],
-                                child: (user?.imageUrl == null || user!.imageUrl!.isEmpty)
-                                    ? const Icon(Icons.person, size: 54, color: Colors.white)
-                                    : null,
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            // Pseudo
-                            Center(
-                              child: Text(
-                                user?.pseudo ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 22,
+                            if (state.isRelated) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Bio
-                            if (user?.bio != null && user!.bio.isNotEmpty)
-                              Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                                  child: Text(
-                                    user!.bio,
-                                    style: const TextStyle(color: Colors.grey, fontSize: 16),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(height: 18),
-                            // Ligne séparatrice
-                            Container(
-                              height: 1,
-                              color: Colors.grey[800],
-                              margin: const EdgeInsets.symmetric(horizontal: 24),
-                            ),
-                            const SizedBox(height: 18),
-                            // Section tweets
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                              child: Text(
-                                'Tweets',
-                                style: TextStyle(
-                                  color: Colors.grey[300],
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                            ...userTweets.map((tweet) => TweetItem(
-                                  tweet: tweet,
-                                  author: user!,
-                                  userId: FirebaseAuth.instance.currentUser?.uid,
-                                  tweetBloc: tweetBloc,
-                                  onDeleteTweet: (tweetId) {
-                                    tweetBloc.add(DeleteTweet(tweetId: tweetId));
+                                child: IconButton(
+                                  icon: const Icon(Icons.person_remove, color: Color(0xFFF4212E)),
+                                  tooltip: 'Supprimer la relation',
+                                  onPressed: () {
+                                    if (currentUserId != null) {
+                                      relationBloc.add(DeleteRelation(userA: currentUserId, userB: widget.userId));
+                                    }
                                   },
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => MultiRepositoryProvider(
-                                          providers: [
-                                            RepositoryProvider.value(value: RepositoryProvider.of<TweetRepository>(context)),
-                                            RepositoryProvider.value(value: RepositoryProvider.of<UserRepository>(context)),
-                                          ],
-                                          child: TweetDetailScreen(
-                                            tweet: tweet,
-                                            author: user!,
-                                          ),
-                                        ),
+                                ),
+                              );
+                            }
+                            if (state.hasReceivedRequest && !state.isRelated) {
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.check_circle, color: Color(0xFF00BA7C)),
+                                      tooltip: 'Accepter la demande',
+                                      onPressed: () {
+                                        if (currentUserId != null) {
+                                          relationBloc.add(AcceptRelationRequest(fromUserId: widget.userId, toUserId: currentUserId));
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.cancel, color: Color(0xFFF4212E)),
+                                      tooltip: 'Refuser la demande',
+                                      onPressed: () {
+                                        if (currentUserId != null) {
+                                          relationBloc.add(RefuseRelationRequest(fromUserId: widget.userId, toUserId: currentUserId));
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            if (state.hasSentRequest) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: Icon(Icons.hourglass_top, color: Color(0xFFFFD400), size: 24),
+                                ),
+                              );
+                            }
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.person_add_alt_1, color: Color(0xFF1D9BF0)),
+                                tooltip: 'Envoyer une demande de relation',
+                                onPressed: () {
+                                  if (currentUserId != null) {
+                                    relationBloc.add(
+                                      SendRelationRequest(
+                                        AskingRelation(fromUserId: currentUserId, toUserId: widget.userId),
                                       ),
                                     );
-                                  },
-                                )),
-                            if (userTweets.isEmpty)
-                              const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 32),
-                                  child: Text('Aucun tweet', style: TextStyle(color: Colors.grey)),
-                                ),
+                                  }
+                                },
                               ),
-                            const SizedBox(height: 32),
+                            );
+                          }
+                          return Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF1D9BF0),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          const Color(0xFF1D9BF0).withOpacity(0.3),
+                          Colors.black.withOpacity(0.7),
+                        ],
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (isLoadingUser)
+                          const CircularProgressIndicator(
+                            color: Color(0xFF1D9BF0),
+                            strokeWidth: 2,
+                          )
+                        else if (userError != null)
+                          Column(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFF4212E),
+                                size: 48,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                userError!,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          )
+                        else ...[
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(60),
+                              border: Border.all(
+                                color: const Color(0xFF1D9BF0),
+                                width: 3,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundImage: (user?.imageUrl != null && user!.imageUrl!.isNotEmpty)
+                                  ? NetworkImage(user!.imageUrl!)
+                                  : null,
+                              backgroundColor: const Color(0xFF536471),
+                              child: (user?.imageUrl == null || user!.imageUrl!.isEmpty)
+                                  ? const Icon(Icons.person, size: 50, color: Colors.white)
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            user?.pseudo ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
+                          ),
+                          if (user?.bio != null && user!.bio.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(
+                                user!.bio,
+                                style: const TextStyle(
+                                  color: Color(0xFF71767B),
+                                  fontSize: 15,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: BlocBuilder<TweetBloc, TweetState>(
+                  builder: (context, state) {
+                    if (state is TweetLoaded) {
+                      final userTweets = state.tweets.where((t) => t.userId == widget.userId && t.isComment == false).toList();
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.auto_awesome,
+                              color: Color(0xFF1D9BF0),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Tweets (${userTweets.length})',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
                           ],
                         ),
+                      );
+                    } else {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.auto_awesome,
+                              color: Color(0xFF1D9BF0),
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Tweets',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+              BlocBuilder<TweetBloc, TweetState>(
+                builder: (context, state) {
+                  if (state is TweetLoading) {
+                    return SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(64),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF1D9BF0),
+                            strokeWidth: 2,
+                          ),
+                        ),
                       ),
+                    );
+                  } else if (state is TweetError) {
+                    return SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFF4212E),
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                state.message,
+                                style: const TextStyle(color: Colors.white),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  } else if (state is TweetLoaded) {
+                    final userTweets = state.tweets.where((t) => t.userId == widget.userId && t.isComment == false).toList();
+                    
+                    if (userTweets.isEmpty) {
+                      return SliverToBoxAdapter(
+                        child: Container(
+                          padding: const EdgeInsets.all(64),
+                          child: const Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.post_add_outlined,
+                                  color: Color(0xFF71767B),
+                                  size: 64,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Aucun Tweet',
+                                  style: TextStyle(
+                                    color: Color(0xFF71767B),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Quand vous tweetez, ils apparaîtront ici.',
+                                  style: TextStyle(
+                                    color: Color(0xFF71767B),
+                                    fontSize: 15,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final tweet = userTweets[index];
+                          return TweetItem(
+                            tweet: tweet,
+                            author: user!,
+                            userId: FirebaseAuth.instance.currentUser?.uid,
+                            onDeleteTweet: (tweetId) {
+                              context.read<TweetBloc>().add(DeleteTweet(tweetId: tweetId));
+                            },
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => MultiRepositoryProvider(
+                                    providers: [
+                                      RepositoryProvider.value(value: RepositoryProvider.of<TweetRepository>(context)),
+                                      RepositoryProvider.value(value: RepositoryProvider.of<UserRepository>(context)),
+                                    ],
+                                    child: BlocProvider(
+                                      create: (context) => TweetBloc(
+                                        tweetRepository: RepositoryProvider.of<TweetRepository>(context),
+                                      )..add(FetchTweets()),
+                                      child: TweetDetailScreen(
+                                        tweet: tweet,
+                                        author: user!,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        childCount: userTweets.length,
+                      ),
+                    );
+                  } else {
+                    return SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(64),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF1D9BF0),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -332,10 +578,9 @@ class TweetItem extends StatefulWidget {
   final Tweet tweet;
   final UserFromBloc author;
   final String? userId;
-  final TweetBloc tweetBloc;
   final VoidCallback? onTap;
   final Function(String)? onDeleteTweet;
-  const TweetItem({super.key, required this.tweet, required this.author, required this.userId, required this.tweetBloc, this.onTap, this.onDeleteTweet});
+  const TweetItem({super.key, required this.tweet, required this.author, required this.userId, this.onTap, this.onDeleteTweet});
 
   @override
   State<TweetItem> createState() => _TweetItemState();
@@ -369,10 +614,11 @@ class _TweetItemState extends State<TweetItem> {
       isLiked = !isLiked;
       likesCount += isLiked ? 1 : -1;
     });
+    final tweetBloc = context.read<TweetBloc>();
     if (isLiked) {
-      widget.tweetBloc.add(LikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
+      tweetBloc.add(LikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
     } else {
-      widget.tweetBloc.add(UnlikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
+      tweetBloc.add(UnlikeTweet(userId: widget.userId!, tweetId: widget.tweet.id));
     }
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) setState(() => loading = false);

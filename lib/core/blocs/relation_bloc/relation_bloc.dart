@@ -8,6 +8,8 @@ import 'relation_state.dart';
 
 class RelationBloc extends Bloc<RelationEvent, RelationState> {
   final RelationRepository relationRepository;
+  final NotificationRepository _notificationRepository = NotificationRepository();
+  
   RelationBloc({required this.relationRepository}) : super(RelationInitial()) {
     on<SendRelationRequest>(_onSendRelationRequest);
     on<CheckRelationRequest>(_onCheckRelationRequest);
@@ -22,6 +24,8 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
     emit(RelationLoading());
     try {
       await relationRepository.sendRelationRequest(event.relation);
+      
+      // Créer une notification
       final notif = AppNotification(
         id: '',
         type: NotificationType.AskingRelationReceived,
@@ -31,21 +35,28 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
         toUserId: event.relation.toUserId,
         timestamp: DateTime.now(),
       );
-      await NotificationRepository().addNotification(notif);
-      emit(RelationSuccess());
-      _refreshStatusAfterAction(event.relation.fromUserId, event.relation.toUserId, emit);
+      await _notificationRepository.addNotification(notif);
+      
+      emit(RelationActionSuccess());
+      
+      // Rafraîchir le statut directement
+      await _emitUpdatedStatus(event.relation.fromUserId, event.relation.toUserId, emit);
     } catch (e) {
-      emit(RelationError(e.toString()));
+      emit(RelationActionError(e.toString()));
     }
   }
 
   Future<void> _onCheckRelationRequest(CheckRelationRequest event, Emitter<RelationState> emit) async {
     emit(RelationLoading());
-    final exists = await relationRepository.hasPendingRequest(event.fromUserId, event.toUserId);
-    if (exists) {
-      emit(RelationAlreadySent());
-    } else {
-      emit(RelationInitial());
+    try {
+      final exists = await relationRepository.hasPendingRequest(event.fromUserId, event.toUserId);
+      if (exists) {
+        emit(RelationAlreadySent());
+      } else {
+        emit(RelationInitial());
+      }
+    } catch (e) {
+      emit(RelationActionError(e.toString()));
     }
   }
 
@@ -54,8 +65,11 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
     try {
       await relationRepository.createRelation(event.fromUserId, event.toUserId);
       await relationRepository.deleteRelationRequest(event.fromUserId, event.toUserId);
+      
       emit(RelationActionSuccess());
-      _refreshStatusAfterAction(event.toUserId, event.fromUserId, emit);
+      
+      // Rafraîchir le statut directement
+      await _emitUpdatedStatus(event.toUserId, event.fromUserId, emit);
     } catch (e) {
       emit(RelationActionError(e.toString()));
     }
@@ -65,8 +79,11 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
     emit(RelationLoading());
     try {
       await relationRepository.deleteRelationRequest(event.fromUserId, event.toUserId);
+      
       emit(RelationActionSuccess());
-      _refreshStatusAfterAction(event.toUserId, event.fromUserId, emit);
+      
+      // Rafraîchir le statut directement
+      await _emitUpdatedStatus(event.toUserId, event.fromUserId, emit);
     } catch (e) {
       emit(RelationActionError(e.toString()));
     }
@@ -76,8 +93,11 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
     emit(RelationLoading());
     try {
       await relationRepository.deleteRelation(event.userA, event.userB);
+      
       emit(RelationActionSuccess());
-      _refreshStatusAfterAction(event.userA, event.userB, emit);
+      
+      // Rafraîchir le statut directement
+      await _emitUpdatedStatus(event.userA, event.userB, emit);
     } catch (e) {
       emit(RelationActionError(e.toString()));
     }
@@ -85,34 +105,46 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
 
   Future<void> _onCheckIfRelationExists(CheckIfRelationExists event, Emitter<RelationState> emit) async {
     emit(RelationLoading());
-    final exists = await relationRepository.relationExists(event.userA, event.userB);
-    if (exists) {
-      emit(RelationExists());
-    } else {
-      emit(RelationNotExists());
+    try {
+      final exists = await relationRepository.relationExists(event.userA, event.userB);
+      if (exists) {
+        emit(RelationExists());
+      } else {
+        emit(RelationNotExists());
+      }
+    } catch (e) {
+      emit(RelationActionError(e.toString()));
     }
   }
 
   Future<void> _onCheckFullRelationStatus(CheckFullRelationStatus event, Emitter<RelationState> emit) async {
-    emit(RelationStatusState(isRelated: false, hasSentRequest: false, hasReceivedRequest: false, loading: true));
-    final isRelated = await relationRepository.relationExists(event.currentUserId, event.profileUserId);
-    final hasSentRequest = await relationRepository.hasPendingRequest(event.currentUserId, event.profileUserId);
-    final hasReceivedRequest = await relationRepository.hasPendingRequest(event.profileUserId, event.currentUserId);
     emit(RelationStatusState(
-      isRelated: isRelated,
-      hasSentRequest: hasSentRequest,
-      hasReceivedRequest: hasReceivedRequest,
-      loading: false,
+      isRelated: false, 
+      hasSentRequest: false, 
+      hasReceivedRequest: false, 
+      loading: true
     ));
+    
+    await _emitUpdatedStatus(event.currentUserId, event.profileUserId, emit);
   }
 
-  // Après chaque action qui modifie l'état, relancer le check complet
-  Future<void> _refreshStatusAfterAction(String currentUserId, String profileUserId, Emitter<RelationState> emit) async {
-    add(CheckFullRelationStatus(currentUserId: currentUserId, profileUserId: profileUserId));
-  }
-
-  @override
-  void onTransition(Transition<RelationEvent, RelationState> transition) {
-    super.onTransition(transition);
+  // Méthode centralisée pour émettre le statut mis à jour
+  Future<void> _emitUpdatedStatus(String currentUserId, String profileUserId, Emitter<RelationState> emit) async {
+    try {
+      final futures = await Future.wait([
+        relationRepository.relationExists(currentUserId, profileUserId),
+        relationRepository.hasPendingRequest(currentUserId, profileUserId),
+        relationRepository.hasPendingRequest(profileUserId, currentUserId),
+      ]);
+      
+      emit(RelationStatusState(
+        isRelated: futures[0],
+        hasSentRequest: futures[1],
+        hasReceivedRequest: futures[2],
+        loading: false,
+      ));
+    } catch (e) {
+      emit(RelationActionError('Erreur lors de la vérification du statut'));
+    }
   }
 } 

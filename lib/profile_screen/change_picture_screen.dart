@@ -31,8 +31,14 @@ class _ProfileChangeImageScreenState extends State<ProfileChangeImageScreen> {
     final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(loc.profileChangePictureScreen_title)),
-      body: BlocListener<UserDataBloc, UserDataState>(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Text(loc.profileChangePictureScreen_title, style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        body: BlocListener<UserDataBloc, UserDataState>(
         listener: (context, state) {
           if(state.status == UserDataStatus.updateImageSuccess){
             ScaffoldMessenger.of(context).showSnackBar(
