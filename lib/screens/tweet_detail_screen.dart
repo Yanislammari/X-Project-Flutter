@@ -163,6 +163,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
     return BlocListener<TweetBloc, TweetState>(
       listener: (context, state) {
         if (state is TweetDeleteSuccess) {
+          print('[DEBUG] TweetDeleteSuccess capturé dans TweetDetailScreen');
           if (state.deletedTweetId == widget.tweet.id) {
             Navigator.of(context).pop();
           } else {

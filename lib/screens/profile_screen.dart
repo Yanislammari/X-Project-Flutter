@@ -94,6 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: BlocListener<TweetBloc, TweetState>(
           listener: (context, state) {
             if (state is TweetDeleteSuccess) {
+              print('[DEBUG] TweetDeleteSuccess capturé dans ProfileScreen');
               _fetchProfile();
             }
           },

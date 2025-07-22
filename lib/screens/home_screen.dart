@@ -135,6 +135,7 @@ class _TweetListViewState extends State<_TweetListView> {
     return BlocListener<TweetBloc, TweetState>(
       listener: (context, state) {
         if (state is TweetDeleteSuccess) {
+          print('[DEBUG] TweetDeleteSuccess capturé dans HomeScreen');
           _fetchTweets();
         }
       },
