@@ -2,7 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:x_project_flutter/core/models/tweet.dart';
 import 'package:x_project_flutter/core/repositories/tweet/tweet_repository.dart';
 import 'tweet_event.dart';
-import 'tweet_state.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
@@ -10,12 +9,14 @@ import '../../repositories/tweet/like_repository.dart';
 import '../../models/notification.dart';
 import '../../repositories/notification/notification_repository.dart';
 
+part 'tweet_state.dart';
+
 class TweetBloc extends Bloc<TweetEvent, TweetState> {
   final TweetRepository tweetRepository;
   final LikeRepository _likeRepository = LikeRepository();
   final NotificationRepository _notificationRepository = NotificationRepository();
 
-  TweetBloc({required this.tweetRepository}) : super(TweetInitial()) {
+  TweetBloc({required this.tweetRepository}) : super(TweetState()) {
     on<FetchTweets>(_onFetchTweets);
     on<AddTweet>(_onAddTweet);
     on<LikeTweet>(_onLikeTweet);
@@ -24,12 +25,12 @@ class TweetBloc extends Bloc<TweetEvent, TweetState> {
   }
 
   Future<void> _onFetchTweets(FetchTweets event, Emitter<TweetState> emit) async {
-    emit(TweetLoading());
+    emit(state.copyWith(status: TweetStatus.loading));
     try {
       final tweets = await tweetRepository.fetchTweets();
-      emit(TweetLoaded(tweets));
+      emit(state.copyWith(status: TweetStatus.loaded, tweets: tweets));
     } catch (e) {
-      emit(TweetError('Erreur lors du chargement des tweets : $e'));
+      emit(state.copyWith(status: TweetStatus.error, message: 'Erreur lors du chargement des tweets : $e'));
     }
   }
 
@@ -51,7 +52,7 @@ class TweetBloc extends Bloc<TweetEvent, TweetState> {
       
       add(FetchTweets());
     } catch (e) {
-      emit(TweetError('Erreur lors de l\'ajout du tweet : $e'));
+      emit(state.copyWith(status: TweetStatus.error, message: 'Erreur lors de l\'ajout du tweet : $e'));
     }
   }
 
@@ -77,9 +78,9 @@ class TweetBloc extends Bloc<TweetEvent, TweetState> {
       await tweetRepository.deleteTweet(event.tweetId);
       
       final tweets = await tweetRepository.fetchTweets();
-      emit(TweetLoaded(tweets));
+      emit(state.copyWith(status: TweetStatus.loaded, tweets: tweets));
     } catch (e) {
-      emit(TweetError('Erreur lors de la suppression du tweet : $e'));
+      emit(state.copyWith(status: TweetStatus.error, message: 'Erreur lors de la suppression du tweet : $e'));
     }
   }
 

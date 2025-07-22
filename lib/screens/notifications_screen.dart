@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/blocs/notification_bloc/notification_bloc.dart';
 import '../core/blocs/notification_bloc/notification_event.dart';
-import '../core/blocs/notification_bloc/notification_state.dart';
 import '../core/repositories/notification/notification_repository.dart';
 import '../widget/notification_widget.dart';
 
@@ -72,15 +71,15 @@ class NotificationsScreen extends StatelessWidget {
               Expanded(
                 child: BlocBuilder<NotificationBloc, NotificationState>(
                   builder: (context, state) {
-                    if (state is NotificationInitial) {
+                    if (state.status == NotificationStatus.initial) {
                       return const Center(
                         child: CircularProgressIndicator(
                           color: Color(0xFF1D9BF0),
                           strokeWidth: 2,
                         ),
                       );
-                    } else if (state is NotificationLoaded) {
-                      if (state.notifications.isEmpty) {
+                    } else if (state.status == NotificationStatus.loaded && state.notifications != null) {
+                                              if (state.notifications!.isEmpty) {
                         return const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -114,14 +113,14 @@ class NotificationsScreen extends StatelessWidget {
                       }
                       return ListView.builder(
                         physics: const BouncingScrollPhysics(),
-                        itemCount: state.notifications.length,
+                        itemCount: state.notifications!.length,
                         itemBuilder: (context, index) {
                           return NotificationWidget(
-                            notification: state.notifications[index],
+                            notification: state.notifications![index],
                           );
                         },
                       );
-                    } else if (state is NotificationError) {
+                    } else if (state.status == NotificationStatus.error) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -133,7 +132,7 @@ class NotificationsScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              state.message,
+                              state.message ?? 'Une erreur est survenue',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,

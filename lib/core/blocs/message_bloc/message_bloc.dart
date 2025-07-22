@@ -2,18 +2,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../models/message.dart';
 import '../../repositories/message/message_repository.dart';
 import 'message_event.dart';
-import 'message_state.dart';
 import 'dart:async';
+
+part 'message_state.dart';
 
 class MessageBloc extends Bloc<MessageEvent, MessageState> {
   final MessageRepository messageRepository;
   StreamSubscription<List<Message>>? _subscription;
 
-  MessageBloc({required this.messageRepository}) : super(MessageInitial()) {
+  MessageBloc({required this.messageRepository}) : super(MessageState()) {
     on<ListenMessages>(_onListenMessages);
     on<SendMessageEvent>(_onSendMessage);
     on<_MessagesUpdated>((event, emit) {
-      emit(MessageLoaded(event.messages));
+      emit(state.copyWith(status: MessageStatus.loaded, messages: event.messages));
     });
   }
 
@@ -28,7 +29,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     try {
       await messageRepository.sendMessage(event.message);
     } catch (e) {
-      emit(MessageError(e.toString()));
+      emit(state.copyWith(status: MessageStatus.error, message: e.toString()));
     }
   }
 

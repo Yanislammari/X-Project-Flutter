@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/blocs/conversation_bloc/conversation_bloc.dart';
 import '../core/blocs/conversation_bloc/conversation_event.dart';
-import '../core/blocs/conversation_bloc/conversation_state.dart';
 import '../core/repositories/message/conversation_repository.dart';
 import '../core/models/conversation.dart';
 import '../core/models/user.dart';
@@ -13,7 +12,6 @@ import 'conversation_screen.dart';
 import '../core/repositories/relation/relation_repository.dart';
 import '../core/blocs/relation_bloc/relation_bloc.dart';
 import '../core/blocs/relation_bloc/relation_event.dart';
-import '../core/blocs/relation_bloc/relation_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MessagesScreen extends StatelessWidget {
@@ -125,15 +123,15 @@ class MessagesScreen extends StatelessWidget {
               Expanded(
                 child: BlocBuilder<ConversationBloc, ConversationState>(
                   builder: (context, state) {
-                    if (state is ConversationInitial) {
+                                          if (state.status == ConversationStatus.initial) {
                       return const Center(
                         child: CircularProgressIndicator(
                           color: Color(0xFF1D9BF0),
                           strokeWidth: 2,
                         ),
                       );
-                    } else if (state is ConversationLoaded) {
-                      if (state.conversations.isEmpty) {
+                                          } else if (state.status == ConversationStatus.loaded && state.conversations != null) {
+                                              if (state.conversations!.isEmpty) {
                         return const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -167,9 +165,9 @@ class MessagesScreen extends StatelessWidget {
                       }
                       return ListView.builder(
                         physics: const BouncingScrollPhysics(),
-                        itemCount: state.conversations.length,
+                        itemCount: state.conversations!.length,
                         itemBuilder: (context, index) {
-                          final conv = state.conversations[index];
+                          final conv = state.conversations![index];
                           final otherId = conv.participants.firstWhere((id) => id != user.uid);
                           return FutureBuilder<FirebaseUser?>(
                             future: UserRepository(userDataSource: FirebaseUserDataSource()).getUserById(otherId),
@@ -226,7 +224,7 @@ class MessagesScreen extends StatelessWidget {
                           );
                         },
                       );
-                    } else if (state is ConversationError) {
+                                          } else if (state.status == ConversationStatus.error) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -238,7 +236,7 @@ class MessagesScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              state.message,
+                              state.message ?? 'Une erreur est survenue',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,

@@ -11,7 +11,6 @@ import '../widget/tweet_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/blocs/tweet_bloc/tweet_bloc.dart';
 import '../core/blocs/tweet_bloc/tweet_event.dart';
-import '../core/blocs/tweet_bloc/tweet_state.dart';
 
 class TweetDetailScreen extends StatefulWidget {
   final Tweet tweet;
@@ -102,9 +101,9 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
   Widget build(BuildContext context) {
     return BlocListener<TweetBloc, TweetState>(
       listener: (context, state) {
-        if (state is TweetLoaded) {
+        if (state.status == TweetStatus.loaded && state.tweets != null) {
           // Vérifier si le tweet principal a été supprimé
-          final mainTweetExists = state.tweets.any((t) => t.id == widget.tweet.id);
+          final mainTweetExists = state.tweets!.any((t) => t.id == widget.tweet.id);
           if (!mainTweetExists) {
             Navigator.of(context).pop();
           }
@@ -188,8 +187,8 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
                     // Comments Header and List
                     BlocBuilder<TweetBloc, TweetState>(
                       builder: (context, state) {
-                        if (state is TweetLoaded) {
-                          final comments = state.tweets.where((t) => t.isComment == true && t.replyToTweetId == widget.tweet.id).toList();
+                        if (state.status == TweetStatus.loaded && state.tweets != null) {
+                                                      final comments = state.tweets!.where((t) => t.isComment == true && t.replyToTweetId == widget.tweet.id).toList();
                           
                           return SliverMainAxisGroup(
                             slivers: [
@@ -275,7 +274,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
                                 ),
                             ],
                           );
-                        } else if (state is TweetLoading) {
+                        } else if (state.status == TweetStatus.loading) {
                           return SliverToBoxAdapter(
                             child: Container(
                               padding: const EdgeInsets.all(64),
@@ -287,7 +286,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
                               ),
                             ),
                           );
-                        } else if (state is TweetError) {
+                        } else if (state.status == TweetStatus.error) {
                           return SliverToBoxAdapter(
                             child: Center(
                               child: Padding(
@@ -301,7 +300,7 @@ class _TweetDetailScreenState extends State<TweetDetailScreen> {
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
-                                      state.message,
+                                      state.message ?? 'Une erreur est survenue',
                                       style: const TextStyle(color: Colors.white),
                                       textAlign: TextAlign.center,
                                     ),

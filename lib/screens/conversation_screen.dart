@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/blocs/message_bloc/message_bloc.dart';
 import '../core/blocs/message_bloc/message_event.dart';
-import '../core/blocs/message_bloc/message_state.dart';
 import '../core/repositories/message/message_repository.dart';
 import '../core/models/message.dart';
 import '../core/models/user.dart';
@@ -88,7 +87,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 child: IconButton(
                   icon: const Icon(Icons.info_outline, color: Color(0xFF1D9BF0), size: 20),
                   onPressed: () {
-                    // Action pour les infos de la conversation
                   },
                 ),
               ),
@@ -104,14 +102,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 Expanded(
                   child: BlocBuilder<MessageBloc, MessageState>(
                     builder: (context, state) {
-                      if (state is MessageInitial) {
+                      if (state.status == MessageStatus.initial) {
                         return const Center(
                           child: CircularProgressIndicator(
                             color: Color(0xFF1D9BF0),
                             strokeWidth: 2,
                           ),
                         );
-                      } else if (state is MessageLoaded) {
+                      } else if (state.status == MessageStatus.loaded && state.messages != null) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (_scrollController.hasClients) {
                             _scrollController.animateTo(
@@ -121,7 +119,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             );
                           }
                         });
-                        if (state.messages.isEmpty) {
+                        if (state.messages!.isEmpty) {
                           return const Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -161,14 +159,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             left: 16,
                             right: 16,
                           ),
-                          itemCount: state.messages.length,
+                          itemCount: state.messages!.length,
                           itemBuilder: (context, index) {
-                            final message = state.messages[index];
+                            final message = state.messages![index];
                             final isMe = message.senderId == user?.uid;
                             final isFirstInGroup = index == 0 ||
-                                state.messages[index - 1].senderId != message.senderId;
-                            final isLastInGroup = index == state.messages.length - 1 ||
-                                state.messages[index + 1].senderId != message.senderId;
+                                state.messages![index - 1].senderId != message.senderId;
+                            final isLastInGroup = index == state.messages!.length - 1 ||
+                                state.messages![index + 1].senderId != message.senderId;
                             final showAvatar = !isMe && isLastInGroup;
 
                             return MessageBubble(
@@ -181,7 +179,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             );
                           },
                         );
-                      } else if (state is MessageError) {
+                      } else if (state.status == MessageStatus.error) {
                         return Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -193,7 +191,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                state.message,
+                                state.message ?? 'Une erreur est survenue',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,

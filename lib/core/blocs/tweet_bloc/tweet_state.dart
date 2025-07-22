@@ -1,14 +1,36 @@
-import 'package:x_project_flutter/core/models/tweet.dart';
+part of 'tweet_bloc.dart';
 
-abstract class TweetState {}
-
-class TweetInitial extends TweetState {}
-class TweetLoading extends TweetState {}
-class TweetLoaded extends TweetState {
-  final List<Tweet> tweets;
-  TweetLoaded(this.tweets);
+enum TweetStatus {
+  initial,
+  loading,
+  loaded,
+  error,
 }
-class TweetError extends TweetState {
-  final String message;
-  TweetError(this.message);
+
+class TweetState {
+  final TweetStatus status;
+  final String? message;
+  final List<Tweet>? tweets;
+  final Exception? error;
+
+  TweetState({
+    this.status = TweetStatus.initial,
+    this.message,
+    this.tweets,
+    this.error,
+  });
+
+  TweetState copyWith({
+    TweetStatus? status,
+    String? message,
+    List<Tweet>? tweets,
+    Exception? error,
+  }) {
+    return TweetState(
+      status: status ?? this.status,
+      message: message ?? this.message,
+      tweets: tweets ?? this.tweets,
+      error: error ?? this.error,
+    );
+  }
 } 

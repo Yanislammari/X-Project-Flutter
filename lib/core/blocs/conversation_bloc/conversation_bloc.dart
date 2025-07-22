@@ -2,17 +2,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../models/conversation.dart';
 import '../../repositories/message/conversation_repository.dart';
 import 'conversation_event.dart';
-import 'conversation_state.dart';
 import 'dart:async';
+
+part 'conversation_state.dart';
 
 class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
   final ConversationRepository conversationRepository;
   StreamSubscription<List<Conversation>>? _subscription;
 
-  ConversationBloc({required this.conversationRepository}) : super(ConversationInitial()) {
+  ConversationBloc({required this.conversationRepository}) : super(ConversationState()) {
     on<ListenConversations>(_onListenConversations);
     on<_ConversationsUpdated>((event, emit) {
-      emit(ConversationLoaded(event.conversations));
+      emit(state.copyWith(status: ConversationStatus.loaded, conversations: event.conversations));
     });
   }
 

@@ -9,12 +9,10 @@ import '../widget/tweet_widget.dart';
 import '../screens/tweet_detail_screen.dart';
 import '../core/blocs/tweet_bloc/tweet_bloc.dart';
 import '../core/blocs/tweet_bloc/tweet_event.dart';
-import '../core/blocs/tweet_bloc/tweet_state.dart';
 import '../core/repositories/tweet/like_repository.dart';
 import 'package:flutter/services.dart';
 import '../core/blocs/relation_bloc/relation_bloc.dart';
 import '../core/blocs/relation_bloc/relation_event.dart';
-import '../core/blocs/relation_bloc/relation_state.dart';
 import '../core/repositories/relation/relation_repository.dart';
 import '../core/models/asking_relation.dart';
 import '../profile_screen/profile_screen.dart' as edit_profile;
@@ -136,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       margin: const EdgeInsets.all(8),
                       child: BlocConsumer<RelationBloc, RelationState>(
                         listener: (context, state) {
-                          if (state is RelationActionSuccess) {
+                          if (state.status == RelationStatus.actionSuccess) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: const Text(
@@ -154,11 +152,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             if (currentUserId != null) {
                               relationBloc.add(CheckFullRelationStatus(currentUserId: currentUserId, profileUserId: widget.userId));
                             }
-                          } else if (state is RelationActionError) {
+                          } else if (state.status == RelationStatus.actionError) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  state.message,
+                                  state.message ?? 'Une erreur est survenue',
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                 ),
                                 backgroundColor: const Color(0xFFF4212E),
@@ -172,8 +170,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                         builder: (context, state) {
                           final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-                          if (state is RelationStatusState) {
-                            if (state.loading) {
+                          if (state.status == RelationStatus.statusLoaded) {
+                                                          if (state.loading == true) {
                               return Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
@@ -190,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               );
                             }
-                            if (state.isRelated) {
+                            if (state.isRelated == true) {
                               return Container(
                                 decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.6),
@@ -207,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               );
                             }
-                            if (state.hasReceivedRequest && !state.isRelated) {
+                            if (state.hasReceivedRequest == true && state.isRelated != true) {
                               return Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -245,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ],
                               );
                             }
-                            if (state.hasSentRequest) {
+                            if (state.hasSentRequest == true) {
                               return Container(
                                 decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.6),
@@ -388,8 +386,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SliverToBoxAdapter(
                 child: BlocBuilder<TweetBloc, TweetState>(
                   builder: (context, state) {
-                    if (state is TweetLoaded) {
-                      final userTweets = state.tweets.where((t) => t.userId == widget.userId && t.isComment == false).toList();
+                    if (state.status == TweetStatus.loaded && state.tweets != null) {
+                      final userTweets = state.tweets!.where((t) => t.userId == widget.userId && t.isComment == false).toList();
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         child: Row(
@@ -439,7 +437,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               BlocBuilder<TweetBloc, TweetState>(
                 builder: (context, state) {
-                  if (state is TweetLoading) {
+                                              if (state.status == TweetStatus.loading) {
                     return SliverToBoxAdapter(
                       child: Container(
                         padding: const EdgeInsets.all(64),
@@ -451,7 +449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     );
-                  } else if (state is TweetError) {
+                                      } else if (state.status == TweetStatus.error) {
                     return SliverToBoxAdapter(
                       child: Center(
                         child: Padding(
@@ -465,7 +463,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                state.message,
+                                state.message ?? 'Une erreur est survenue',
                                 style: const TextStyle(color: Colors.white),
                                 textAlign: TextAlign.center,
                               ),
@@ -474,8 +472,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     );
-                  } else if (state is TweetLoaded) {
-                    final userTweets = state.tweets.where((t) => t.userId == widget.userId && t.isComment == false).toList();
+                                      } else if (state.status == TweetStatus.loaded && state.tweets != null) {
+                    final userTweets = state.tweets!.where((t) => t.userId == widget.userId && t.isComment == false).toList();
                     
                     if (userTweets.isEmpty) {
                       return SliverToBoxAdapter(

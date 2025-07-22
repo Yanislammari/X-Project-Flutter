@@ -12,7 +12,6 @@ import 'screens/profile_screen.dart';
 import 'core/repositories/user_data/firebase_user_data_source.dart';
 import 'globals.dart';
 import 'package:x_project_flutter/core/blocs/notification_bloc/notification_bloc.dart';
-import 'package:x_project_flutter/core/blocs/notification_bloc/notification_state.dart';
 import 'package:x_project_flutter/core/blocs/notification_bloc/notification_event.dart';
 import 'package:x_project_flutter/core/repositories/notification/notification_repository.dart';
 import 'core/models/notification.dart';
@@ -67,14 +66,14 @@ class _MainScreenState extends State<MainScreen> {
         ..add(ListenNotifications(user!.uid)),
       child: BlocListener<NotificationBloc, NotificationState>(
         listener: (context, state) {
-          if (state is NotificationLoaded && state.notifications.isNotEmpty) {
+          if (state.status == NotificationStatus.loaded && state.notifications != null && state.notifications!.isNotEmpty) {
             final user = FirebaseAuth.instance.currentUser;
             if (!_initialLoadDone) {
-              _seenNotificationIds.addAll(state.notifications.map((n) => n.id));
+              _seenNotificationIds.addAll(state.notifications!.map((n) => n.id));
               _initialLoadDone = true;
               return;
             }
-            for (final notif in state.notifications) {
+            for (final notif in state.notifications!) {
               if (notif.toUserId == user?.uid && _currentIndex != 2 && !_seenNotificationIds.contains(notif.id)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Vous avez reçu une notification')),
@@ -153,7 +152,7 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BlocBuilder<NotificationBloc, NotificationState>(
         builder: (context, state) {
           bool hasUnread = false;
-          if (state is NotificationLoaded) {
+          if (state.status == NotificationStatus.loaded) {
             hasUnread = state.hasUnread;
           }
           return Container(

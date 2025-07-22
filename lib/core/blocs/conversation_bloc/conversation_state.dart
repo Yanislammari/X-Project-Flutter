@@ -1,13 +1,35 @@
-import '../../models/conversation.dart';
+part of 'conversation_bloc.dart';
 
-abstract class ConversationState {}
-
-class ConversationInitial extends ConversationState {}
-class ConversationLoaded extends ConversationState {
-  final List<Conversation> conversations;
-  ConversationLoaded(this.conversations);
+enum ConversationStatus {
+  initial,
+  loaded,
+  error,
 }
-class ConversationError extends ConversationState {
-  final String message;
-  ConversationError(this.message);
+
+class ConversationState {
+  final ConversationStatus status;
+  final String? message;
+  final List<Conversation>? conversations;
+  final Exception? error;
+
+  ConversationState({
+    this.status = ConversationStatus.initial,
+    this.message,
+    this.conversations,
+    this.error,
+  });
+
+  ConversationState copyWith({
+    ConversationStatus? status,
+    String? message,
+    List<Conversation>? conversations,
+    Exception? error,
+  }) {
+    return ConversationState(
+      status: status ?? this.status,
+      message: message ?? this.message,
+      conversations: conversations ?? this.conversations,
+      error: error ?? this.error,
+    );
+  }
 } 

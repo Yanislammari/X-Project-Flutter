@@ -13,7 +13,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/add_tweet_screen.dart';
 import '../core/blocs/tweet_bloc/tweet_bloc.dart';
 import '../core/blocs/tweet_bloc/tweet_event.dart';
-import '../core/blocs/tweet_bloc/tweet_state.dart';
 import '../screens/tweet_detail_screen.dart';
 import '../screens/profile_screen.dart';
 import '../globals.dart';
@@ -114,14 +113,14 @@ class _TweetListViewState extends State<_TweetListView> {
       body: SafeArea(
         child: BlocBuilder<TweetBloc, TweetState>(
           builder: (context, state) {
-            if (state is TweetLoading) {
+            if (state.status == TweetStatus.loading) {
               return const Center(
                 child: CircularProgressIndicator(
                   color: Color(0xFF1D9BF0),
                   strokeWidth: 2,
                 ),
               );
-            } else if (state is TweetError) {
+            } else if (state.status == TweetStatus.error) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -133,7 +132,7 @@ class _TweetListViewState extends State<_TweetListView> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      state.message,
+                      state.message ?? 'Une erreur est survenue',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -159,8 +158,8 @@ class _TweetListViewState extends State<_TweetListView> {
                   ],
                 ),
               );
-            } else if (state is TweetLoaded) {
-              final tweets = state.tweets.where((t) => !t.isComment).toList();
+            } else if (state.status == TweetStatus.loaded && state.tweets != null) {
+              final tweets = state.tweets!.where((t) => !t.isComment).toList();
               
               return RefreshIndicator(
                 color: const Color(0xFF1D9BF0),

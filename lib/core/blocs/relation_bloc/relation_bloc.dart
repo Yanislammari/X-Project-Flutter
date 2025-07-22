@@ -4,13 +4,14 @@ import '../../models/notification.dart';
 import '../../repositories/relation/relation_repository.dart';
 import '../../repositories/notification/notification_repository.dart';
 import 'relation_event.dart';
-import 'relation_state.dart';
+
+part 'relation_state.dart';
 
 class RelationBloc extends Bloc<RelationEvent, RelationState> {
   final RelationRepository relationRepository;
   final NotificationRepository _notificationRepository = NotificationRepository();
   
-  RelationBloc({required this.relationRepository}) : super(RelationInitial()) {
+  RelationBloc({required this.relationRepository}) : super(RelationState()) {
     on<SendRelationRequest>(_onSendRelationRequest);
     on<CheckRelationRequest>(_onCheckRelationRequest);
     on<AcceptRelationRequest>(_onAcceptRelationRequest);
@@ -21,7 +22,7 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
   }
 
   Future<void> _onSendRelationRequest(SendRelationRequest event, Emitter<RelationState> emit) async {
-    emit(RelationLoading());
+    emit(state.copyWith(status: RelationStatus.loading));
     try {
       await relationRepository.sendRelationRequest(event.relation);
       
@@ -37,88 +38,89 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
       );
       await _notificationRepository.addNotification(notif);
       
-      emit(RelationActionSuccess());
+      emit(state.copyWith(status: RelationStatus.actionSuccess));
       
       // Rafraîchir le statut directement
       await _emitUpdatedStatus(event.relation.fromUserId, event.relation.toUserId, emit);
     } catch (e) {
-      emit(RelationActionError(e.toString()));
+      emit(state.copyWith(status: RelationStatus.actionError, message: e.toString()));
     }
   }
 
   Future<void> _onCheckRelationRequest(CheckRelationRequest event, Emitter<RelationState> emit) async {
-    emit(RelationLoading());
+    emit(state.copyWith(status: RelationStatus.loading));
     try {
       final exists = await relationRepository.hasPendingRequest(event.fromUserId, event.toUserId);
       if (exists) {
-        emit(RelationAlreadySent());
+        emit(state.copyWith(status: RelationStatus.alreadySent));
       } else {
-        emit(RelationInitial());
+        emit(state.copyWith(status: RelationStatus.initial));
       }
     } catch (e) {
-      emit(RelationActionError(e.toString()));
+      emit(state.copyWith(status: RelationStatus.actionError, message: e.toString()));
     }
   }
 
   Future<void> _onAcceptRelationRequest(AcceptRelationRequest event, Emitter<RelationState> emit) async {
-    emit(RelationLoading());
+    emit(state.copyWith(status: RelationStatus.loading));
     try {
       await relationRepository.createRelation(event.fromUserId, event.toUserId);
       await relationRepository.deleteRelationRequest(event.fromUserId, event.toUserId);
       
-      emit(RelationActionSuccess());
+      emit(state.copyWith(status: RelationStatus.actionSuccess));
       
       // Rafraîchir le statut directement
       await _emitUpdatedStatus(event.toUserId, event.fromUserId, emit);
     } catch (e) {
-      emit(RelationActionError(e.toString()));
+      emit(state.copyWith(status: RelationStatus.actionError, message: e.toString()));
     }
   }
 
   Future<void> _onRefuseRelationRequest(RefuseRelationRequest event, Emitter<RelationState> emit) async {
-    emit(RelationLoading());
+    emit(state.copyWith(status: RelationStatus.loading));
     try {
       await relationRepository.deleteRelationRequest(event.fromUserId, event.toUserId);
       
-      emit(RelationActionSuccess());
+      emit(state.copyWith(status: RelationStatus.actionSuccess));
       
       // Rafraîchir le statut directement
       await _emitUpdatedStatus(event.toUserId, event.fromUserId, emit);
     } catch (e) {
-      emit(RelationActionError(e.toString()));
+      emit(state.copyWith(status: RelationStatus.actionError, message: e.toString()));
     }
   }
 
   Future<void> _onDeleteRelation(DeleteRelation event, Emitter<RelationState> emit) async {
-    emit(RelationLoading());
+    emit(state.copyWith(status: RelationStatus.loading));
     try {
       await relationRepository.deleteRelation(event.userA, event.userB);
       
-      emit(RelationActionSuccess());
+      emit(state.copyWith(status: RelationStatus.actionSuccess));
       
       // Rafraîchir le statut directement
       await _emitUpdatedStatus(event.userA, event.userB, emit);
     } catch (e) {
-      emit(RelationActionError(e.toString()));
+      emit(state.copyWith(status: RelationStatus.actionError, message: e.toString()));
     }
   }
 
   Future<void> _onCheckIfRelationExists(CheckIfRelationExists event, Emitter<RelationState> emit) async {
-    emit(RelationLoading());
+    emit(state.copyWith(status: RelationStatus.loading));
     try {
       final exists = await relationRepository.relationExists(event.userA, event.userB);
       if (exists) {
-        emit(RelationExists());
+        emit(state.copyWith(status: RelationStatus.exists));
       } else {
-        emit(RelationNotExists());
+        emit(state.copyWith(status: RelationStatus.notExists));
       }
     } catch (e) {
-      emit(RelationActionError(e.toString()));
+      emit(state.copyWith(status: RelationStatus.actionError, message: e.toString()));
     }
   }
 
   Future<void> _onCheckFullRelationStatus(CheckFullRelationStatus event, Emitter<RelationState> emit) async {
-    emit(RelationStatusState(
+    emit(state.copyWith(
+      status: RelationStatus.statusLoaded,
       isRelated: false, 
       hasSentRequest: false, 
       hasReceivedRequest: false, 
@@ -137,14 +139,15 @@ class RelationBloc extends Bloc<RelationEvent, RelationState> {
         relationRepository.hasPendingRequest(profileUserId, currentUserId),
       ]);
       
-      emit(RelationStatusState(
+      emit(state.copyWith(
+        status: RelationStatus.statusLoaded,
         isRelated: futures[0],
         hasSentRequest: futures[1],
         hasReceivedRequest: futures[2],
         loading: false,
       ));
     } catch (e) {
-      emit(RelationActionError('Erreur lors de la vérification du statut'));
+      emit(state.copyWith(status: RelationStatus.actionError, message: 'Erreur lors de la vérification du statut'));
     }
   }
 } 
